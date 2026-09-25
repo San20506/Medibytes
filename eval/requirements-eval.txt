@@ -1,0 +1,6 @@
+# Shared MediBytes evaluation environment (Python 3.12).
+huggingface-hub==0.36.0
+imageio-ffmpeg==0.6.0
+numpy==2.2.6
+pyarrow==21.0.0
+pytest==8.4.1

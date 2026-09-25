@@ -22,6 +22,9 @@ env/
 Thumbs.db
 .DS_Store
 
+# Evaluation corpus temporary build files
+eval/.cache/
+
 # Local temp uploads (persisted live runs are demo data, keep them by default)
 # Uncomment to exclude regenerated pipeline outputs:
 # demo/cleaned/

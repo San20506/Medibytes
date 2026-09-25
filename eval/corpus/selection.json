@@ -1,0 +1,129 @@
+{
+  "schema_version": "1.0.0",
+  "corpus_id": "pilot-15-v1",
+  "data_root_default": "/home/sandy/.local/share/medibytes-eval",
+  "sources": {
+    "fleurs": {
+      "repo_id": "google/fleurs",
+      "repo_type": "dataset",
+      "revision": "168de341b3db6859a9bac1c50a2ef5e3b47647e0",
+      "order": "numeric id ascending; stable parquet row order breaks duplicate-id ties",
+      "source_identity": "row id plus published audio path stem",
+      "locales": [
+        {
+          "locale": "en_us",
+          "bucket": "en-US-proxy",
+          "language_profile": "en-US-proxy",
+          "code_mix": false,
+          "limit": 4
+        },
+        {
+          "locale": "hi_in",
+          "bucket": "hi",
+          "language_profile": "hi",
+          "code_mix": false,
+          "limit": 4
+        },
+        {
+          "locale": "ta_in",
+          "bucket": "ta",
+          "language_profile": "ta",
+          "code_mix": false,
+          "limit": 4
+        }
+      ]
+    },
+    "mucs": {
+      "dataset": "MUCS 2021 Hindi-English test",
+      "archive_url": "https://openslr.elda.org/resources/104/Hindi-English_test.tar.gz",
+      "archive_member_prefix": "Hindi-English_test",
+      "required_archive_bytes": 443929204,
+      "limit_recordings": 3,
+      "bucket": "hi-en-code-mix",
+      "language_profile": "hi-en-code-mix",
+      "code_mix": true,
+      "license_spdx": "CC-BY-SA-4.0"
+    }
+  },
+  "admission": {
+    "minimum_duration_s": 3.0,
+    "maximum_duration_s": 12.0,
+    "channels": 1,
+    "require_nonempty_transcript": true,
+    "reject_digits": true,
+    "reject_urls": true,
+    "reject_email_addresses": true,
+    "reject_phone_numbers": true,
+    "reject_privacy_tokens": true
+  },
+  "audio": {
+    "sample_rate": 16000,
+    "channels": 1,
+    "codec": "pcm_s16le",
+    "wav_header_bytes": 44,
+    "clean_peak_dbfs": -3.0,
+    "clean_peak_tolerance_db": 0.01,
+    "ffmpeg": {
+      "provider": "imageio-ffmpeg==0.6.0",
+      "system_binary_requires_manifest_hash": true
+    }
+  },
+  "noise": {
+    "types": ["white", "pink_voss16", "hum50", "am_babble_proxy", "echo"],
+    "assignment": "repeat_each_in listed_order_three_times_by_ascending_sample_id",
+    "seed_namespace": "medibytes-corpus-v1|{sample_id}|{noise_type}",
+    "bit_generator": "numpy.random.PCG64",
+    "active_mask": {
+      "window_ms": 20,
+      "hop_ms": 10,
+      "threshold_db_below_max": 40.0,
+      "comparison": "strictly_greater_than"
+    },
+    "target_snr_db": 5.0,
+    "snr_tolerance_db": 0.1,
+    "white": "independent numpy.random.Generator(PCG64(seed)).standard_normal samples",
+    "pink_voss16": {
+      "row_count": 16,
+      "coefficients": [
+        -0.99879179,
+        -0.96516981,
+        -0.90522398,
+        -0.82278677,
+        -0.71656495,
+        -0.58682,
+        -0.4304003,
+        -0.25065828,
+        -0.04513266,
+        0.17055027,
+        0.39316334,
+        0.62192068,
+        0.85025024,
+        1.0,
+        1.17848345,
+        1.32699684
+      ],
+      "normalization": "zero_mean_unit_standard_deviation"
+    },
+    "hum50": {
+      "frequencies_hz": [50.0, 100.0, 150.0],
+      "amplitudes": [0.6, 0.25, 0.1],
+      "phases_rad": [0.0, 0.0, 0.0],
+      "white_noise_amplitude": 0.05
+    },
+    "am_babble_proxy": {
+      "stream_count": 4,
+      "modulation_frequencies_hz": [3.1, 4.7, 6.3, 8.1],
+      "modulation": "0.5_plus_0.5_sine_with_zero_phase",
+      "stream_seed_derivation": "numpy.random.SeedSequence(main_uint64_seed).spawn(4)"
+    },
+    "echo": {
+      "direct_delay_ms": 0.0,
+      "rt60_s": 0.4,
+      "rir_tail": "PCG64_noise_times_10^(-3*t/rt60)",
+      "rir_leading_energy": 1.0,
+      "reference": "reverberant_clean",
+      "headroom_ceiling_dbfs": -1.0,
+      "headroom_application": "one_global_gain_to_reference_and_mixture"
+    }
+  }
+}
