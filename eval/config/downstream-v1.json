@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0.0",
+  "config_id": "downstream-v1",
+  "strict": true,
+  "stt": {
+    "provider": "faster-whisper",
+    "model": "base-int8",
+    "actual_model": "base",
+    "device": "cpu",
+    "compute_type": "int8",
+    "beam_size": 1,
+    "word_timestamps": true,
+    "temperature": 0
+  },
+  "extraction": {
+    "mode": "regex",
+    "use_llm": false,
+    "allow_corrected_artifacts": false
+  },
+  "cache": {
+    "output_cache_enabled": false,
+    "idempotency_reuse_enabled": false
+  },
+  "source_files": [
+    "demo/stt_extract.py",
+    "demo/assets/drug_list_mini.json"
+  ]
+}

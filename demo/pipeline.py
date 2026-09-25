@@ -1,7 +1,7 @@
 """Demo orchestrator Stage 0->4. Sequential, file-based (no Redis/DB).
 
 Usage:
-  python pipeline.py --in audio_in/sample1.wav --key demo-001 [--use-llm] [--no-denoise]
+  python pipeline.py --in audio_in/sample1.wav --key demo-001 [--denoiser none]
   python pipeline.py --gen-samples   # create 2 synthetic wavs for offline testing
 """
 import argparse
@@ -17,7 +17,7 @@ import numpy as np
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, _HERE)
-from audio_clean import clean_audio
+from audio_clean import BackendId, EnhancementConfig, clean_audio
 from stt_extract import run_stt_extract
 
 
@@ -57,6 +57,27 @@ def gen_samples(out_dir):
         print(f"wrote {p}")
 
 
+def _load_denoiser_config(path, backend):
+    """Load an optional JSON backend config without changing CLI identity."""
+    if not path:
+        return EnhancementConfig(backend=backend, variant_id=backend.value)
+    with open(path, encoding="utf-8") as stream:
+        raw = json.load(stream)
+    if not isinstance(raw, dict):
+        raise ValueError("--denoiser-config must contain a JSON object")
+    requested = raw.pop("backend", backend.value)
+    if requested != backend.value:
+        raise ValueError(
+            f"denoiser config backend {requested!r} does not match --denoiser {backend.value!r}"
+        )
+    allowed = {"variant_id", "model_path", "model_sha256", "parameters", "timeout_s"}
+    unknown = set(raw) - allowed
+    if unknown:
+        raise ValueError(f"unknown denoiser config fields: {sorted(unknown)}")
+    raw.setdefault("variant_id", backend.value)
+    return EnhancementConfig(backend=backend, **raw)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--in", dest="inp", default=None)
@@ -65,7 +86,13 @@ def main():
     ap.add_argument("--no-llm", action="store_true", help="regex only, skip LLM")
     ap.add_argument("--model", default="tiny-int8", help="tiny-int8 (fast) | base-int8 (better) | small-int8 (best CPU) | mock (instant)")
     ap.add_argument("--template", default="er_discharge", help="er_discharge | none")
-    ap.add_argument("--no-denoise", action="store_true")
+    ap.add_argument(
+        "--denoiser",
+        choices=[item.value for item in BackendId],
+        default=BackendId.NONE.value,
+        help="single enhancement backend (default: none)",
+    )
+    ap.add_argument("--denoiser-config", default=None, help="optional JSON backend config")
     ap.add_argument("--gen-samples", action="store_true")
     a = ap.parse_args()
 
@@ -87,11 +114,17 @@ def main():
 
     print(f"[0] job {job_id} duplicate={dup} <- {a.inp}")
     try:
-        meta = clean_audio(a.inp, cleaned, apply_denoise=not a.no_denoise)
+        backend = BackendId(a.denoiser)
+        config = _load_denoiser_config(a.denoiser_config, backend)
+        meta = clean_audio(a.inp, cleaned, backend=backend, config=config)
     except ValueError as e:
         print(f"[{job_id}] {e}", file=sys.stderr)
         return 3
-    print(f"[1] cleaned -> {cleaned} vad={meta['vad_ratio']} snr {meta['snr_before_db']}->{meta['snr_after_db']}dB")
+    print(
+        f"[1] cleaned -> {cleaned} vad={meta['vad_ratio']} "
+        f"backend={meta['actual_backend']} variant={meta['variant_id']} "
+        f"rms {meta['rms_dbfs_before']}->{meta['rms_dbfs_after']}dBFS"
+    )
 
     mode = False if a.no_llm else (True if a.use_llm else "auto")
     transcript_json, entities_json = run_stt_extract(cleaned, job_id, use_llm=mode, model=a.model)

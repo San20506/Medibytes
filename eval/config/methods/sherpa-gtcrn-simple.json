@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0.0",
+  "backend": "sherpa-gtcrn-simple",
+  "variant_id": "gtcrn-simple-1.13.8",
+  "executable": true,
+  "source": "https://github.com/k2-fsa/sherpa-onnx",
+  "source_revision": "362ddf2c077e3c04759c93b7a47212a5c9108ca7",
+  "license": "Apache-2.0 toolkit; MIT model",
+  "target_class": "realtime_laptop",
+  "package": "sherpa-onnx",
+  "package_version": "1.13.8",
+  "model_path": "models/sherpa-onnx/gtcrn_simple.onnx",
+  "model_sha256": null,
+  "parameters": {"sample_rate": 16000, "provider": "cpu", "num_threads": 1},
+  "timeout_s": 300.0
+}

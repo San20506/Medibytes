@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0.0",
+  "backend": "speex-denoise",
+  "variant_id": "1.2.1-denoise-only",
+  "executable": true,
+  "source": "https://gitlab.xiph.org/xiph/speexdsp",
+  "license": "BSD-3-Clause",
+  "target_class": "realtime_laptop",
+  "source_revision": "7a158783df74efe7c2d1c6ee8363c1e695c71226",
+  "package": null,
+  "package_version": "1.2.1",
+  "model_path": null,
+  "model_sha256": null,
+  "parameters": {
+    "frame_size": 160,
+    "sample_rate": 16000,
+    "denoise": true,
+    "agc": false,
+    "vad": false,
+    "dereverb": false,
+    "residual_echo_suppression": false
+  },
+  "timeout_s": 300.0
+}

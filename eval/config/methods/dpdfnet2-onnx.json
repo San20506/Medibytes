@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0.0",
+  "backend": "dpdfnet2-onnx",
+  "variant_id": "v0.6.0",
+  "executable": true,
+  "source": "https://github.com/ceva-ip/DPDFNet",
+  "source_revision": "de503b39ddfb16023b9d599b05ca872877506047",
+  "license": "Apache-2.0",
+  "target_class": "realtime_laptop",
+  "package": "dpdfnet",
+  "package_version": "0.6.0",
+  "model_path": "models/dpdfnet/dpdf8c40d95cd/dpPDFNet/dpdfnet2.onnx",
+  "model_sha256": "4f0ee28935b4a32abecc717d745416976565834d839601acf43031094b4dc94c",
+  "parameters": {"sample_rate": 16000, "reset_state_per_condition": true, "attn_limit_db": "package_default"},
+  "timeout_s": 300.0
+}

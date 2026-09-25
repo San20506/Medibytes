@@ -12,8 +12,8 @@
 mic/file (.wav/.mp3/.m4a, ≤100MB, ≤30min)
   │ [0] Receive   pipeline.py + audio_clean.check_audio (size/duration guard, ticket ID, no duplicates)
   ▼
-16k mono wav  [1] Clean  audio_clean.clean_audio (gain normalize + RMS-VAD silence skip + optional denoise)
-  │ cleaned/{job}.wav + cleaned/{job}.meta.json
+16k mono wav  [1] Clean  audio_clean.clean_audio (gain normalize + diagnostic RMS-VAD + explicit backend)
+  │ cleaned/{job}.wav + cleaned/{job}.meta.json (measured RMS + backend provenance)
   ▼
 text+segments [2] STT  stt_extract.transcribe (faster-whisper tiny/base/small-int8 | mock)
   │ transcripts/{job}.json  (raw text, segments + word timestamps, normalized_en)
@@ -178,13 +178,14 @@ python demo/pipeline.py --in "luvvoice.com-20260921-LnWlf1.mp3" --key luvvoice-0
 
 # any new file
 python demo/pipeline.py --in "YOUR_FILE.mp3" --key my-003 --model base-int8 --template er_discharge --use-llm
-python demo/pipeline.py --in "YOUR_FILE.mp3" --key my-003 --model tiny-int8 --template none --no-denoise
+python demo/pipeline.py --in "YOUR_FILE.mp3" --key my-003 --model tiny-int8 --template none --denoiser none
 
 # flags
 #   --model tiny-int8 | base-int8 (investor pick) | small-int8 | mock
 #   --use-llm / --no-llm   (Ollama primary; mock jobs also honor --use-llm)
 #   --template er_discharge | none
-#   --no-denoise
+#   --denoiser none | noisereduce | <installed backend id>
+#   --denoiser-config PATH          (method JSON configuration; no silent fallback)
 #   --gen-samples           (2 synthetic tone wavs for offline plumbing tests)
 ```
 
@@ -202,7 +203,7 @@ live two-drug + `122 of 78` + `100.4°F` + `99%` · generic allergy candidate.
 
 | File | Contents |
 |------|----------|
-| `demo/cleaned/{job}.wav` + `.meta.json` | 16k mono audio + `duration_s, vad_ratio, snr, denoise` |
+| `demo/cleaned/{job}.wav` + `.meta.json` | 16k mono audio + measured RMS, geometry, hashes, timing, and requested/actual backend provenance |
 | `demo/transcripts/{job}.json` | `text, language, segments[] (word times), normalized_en, stt_engine` |
 | `demo/entities/{job}.entities.json` | `drugs[], symptoms[], vitals[], allergies[], negations[], diagnosis, followup, llm_engine` |
 | `demo/entities/{job}.corrected.entities.json` | human-corrected entities (after Apply) |

@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0.0",
+  "backend": "noisereduce",
+  "variant_id": "3.0.2-control",
+  "executable": true,
+  "source": "https://github.com/timsainb/noisereduce",
+  "source_revision": "3.0.2",
+  "license": "BSD-3-Clause",
+  "target_class": "control",
+  "package": "noisereduce",
+  "package_version": "3.0.2",
+  "model_path": null,
+  "model_sha256": null,
+  "parameters": {"prop_decrease": 1.0},
+  "timeout_s": 300.0
+}

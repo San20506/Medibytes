@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0.0",
+  "backend": "voicefixer-mode0",
+  "variant_id": "0.1.3-mode0",
+  "executable": true,
+  "source": "https://github.com/haoheliu/voicefixer",
+  "license": "MIT",
+  "target_class": "offline_laptop",
+  "source_revision": "zenodo-5600188",
+  "package": "voicefixer",
+  "package_version": "0.1.3",
+  "model_path": "models/voicefixer/0.1.3",
+  "model_sha256": null,
+  "parameters": {"mode": 0, "cuda": false, "execution_class": "generative_restoration"},
+  "timeout_s": 1800.0
+}

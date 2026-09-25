@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0.0",
+  "backend": "none",
+  "variant_id": "identity-v1",
+  "executable": true,
+  "source": "MediBytes shared baseline",
+  "source_revision": "b0",
+  "license": "MediBytes shared baseline",
+  "target_class": "baseline",
+  "package": null,
+  "package_version": null,
+  "model_path": null,
+  "model_sha256": null,
+  "parameters": {},
+  "timeout_s": 30.0
+}

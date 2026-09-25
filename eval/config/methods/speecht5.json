@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0.0",
+  "backend": "speecht5",
+  "variant_id": "official-checkpoint-audit",
+  "executable": false,
+  "source": "https://github.com/microsoft/SpeechT5",
+  "license": "MIT",
+  "target_class": "research_gpu",
+  "source_revision": "5d66cf5f37e97f4a1999ad519537decc16d852af",
+  "package": null,
+  "package_version": null,
+  "model_path": null,
+  "model_sha256": null,
+  "parameters": {},
+  "timeout_s": 30.0,
+  "disposition": "not_comparable",
+  "reason": "no_released_speech_enhancement_checkpoint_or_audio_to_audio_adapter"
+}

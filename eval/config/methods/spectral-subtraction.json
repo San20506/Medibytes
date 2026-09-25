@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0.0",
+  "backend": "spectral-subtraction",
+  "variant_id": "pyroomacoustics-0.10.1-ss",
+  "executable": true,
+  "source": "https://github.com/LCAV/pyroomacoustics",
+  "license": "MIT",
+  "target_class": "realtime_laptop",
+  "source_revision": "f02b01dd6609709e2089aefa5d1e59c91d3a0601",
+  "package": "pyroomacoustics",
+  "package_version": "0.10.1",
+  "model_path": null,
+  "model_sha256": null,
+  "parameters": {"nfft": 512, "db_reduc": 10, "lookback": 12, "beta": 3, "alpha": 1.2, "sample_rate": 16000},
+  "timeout_s": 300.0
+}

@@ -1,0 +1,145 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://medibytes.local/contracts/corpus-record.schema.json",
+  "title": "MediBytes pilot corpus record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "bucket",
+    "build",
+    "clean",
+    "code_mix",
+    "corpus_id",
+    "group_id",
+    "language_profile",
+    "locale_observed",
+    "noisy",
+    "privacy_decision",
+    "record_status",
+    "reference_status",
+    "sample_id",
+    "schema_version",
+    "source",
+    "split_role",
+    "tuning_allowed"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "record_status": {"const": "complete"},
+    "corpus_id": {"const": "pilot-15-v1"},
+    "sample_id": {"type": "string", "pattern": "^sample-[0-9]{3}$"},
+    "group_id": {"type": "string", "minLength": 1},
+    "split_role": {"const": "smoke"},
+    "tuning_allowed": {"const": false},
+    "bucket": {"enum": ["en-US-proxy", "hi", "ta", "hi-en-code-mix"]},
+    "language_profile": {"type": "string", "minLength": 1},
+    "code_mix": {"type": "boolean"},
+    "locale_observed": {"type": "string", "minLength": 1},
+    "reference_status": {"const": "source_reference"},
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decoder", "decoder_sha256", "tool", "tool_sha256"],
+      "properties": {
+        "decoder": {"type": "string", "minLength": 1},
+        "decoder_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "tool": {"type": "string", "minLength": 1},
+        "tool_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "privacy_decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eligible", "policy_sha256", "reasons"],
+      "properties": {
+        "eligible": {"const": true},
+        "policy_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "reasons": {"type": "array", "maxItems": 0}
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "archive_url",
+        "attribution",
+        "client_id",
+        "dataset",
+        "digest",
+        "license_spdx",
+        "member_path",
+        "recording_id",
+        "release",
+        "revision",
+        "row",
+        "source_id",
+        "speaker_id",
+        "split",
+        "transcript",
+        "transcript_sha256"
+      ],
+      "properties": {
+        "dataset": {"type": "string", "minLength": 1},
+        "release": {"type": "string", "minLength": 1},
+        "revision": {"type": ["string", "null"]},
+        "archive_url": {"type": "string", "minLength": 1},
+        "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "split": {"type": "string", "minLength": 1},
+        "source_id": {"type": "string", "minLength": 1},
+        "member_path": {"type": "string", "minLength": 1},
+        "client_id": {"type": ["string", "null"]},
+        "recording_id": {"type": ["string", "null"]},
+        "speaker_id": {"type": ["string", "null"]},
+        "transcript": {"type": "string", "minLength": 1},
+        "transcript_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "license_spdx": {"type": "string", "minLength": 1},
+        "attribution": {"type": "string", "minLength": 1},
+        "row": {"type": "object"}
+      }
+    },
+    "clean": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bytes", "channels", "codec", "duration_s", "path", "peak", "peak_dbfs", "sample_count", "sample_rate", "sha256", "wav_header_bytes"],
+      "properties": {
+        "path": {"type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "bytes": {"type": "integer", "minimum": 45},
+        "sample_rate": {"const": 16000},
+        "channels": {"const": 1},
+        "codec": {"const": "pcm_s16le"},
+        "sample_count": {"type": "integer", "minimum": 1},
+        "duration_s": {"type": "number", "exclusiveMinimum": 0},
+        "peak": {"type": "number", "exclusiveMinimum": 0},
+        "peak_dbfs": {"type": "number"},
+        "wav_header_bytes": {"const": 44}
+      }
+    },
+    "noisy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["active_rms", "bytes", "channels", "clipping_count", "codec", "duration_s", "measured_snr_db", "noise_type", "parameters", "path", "peak", "peak_dbfs", "post_mix_gain", "sample_count", "sample_rate", "seed", "sha256", "target_snr_db", "wav_header_bytes"],
+      "properties": {
+        "path": {"type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "bytes": {"type": "integer", "minimum": 45},
+        "sample_rate": {"const": 16000},
+        "channels": {"const": 1},
+        "codec": {"const": "pcm_s16le"},
+        "sample_count": {"type": "integer", "minimum": 1},
+        "duration_s": {"type": "number", "exclusiveMinimum": 0},
+        "peak": {"type": "number", "exclusiveMinimum": 0},
+        "peak_dbfs": {"type": "number"},
+        "wav_header_bytes": {"const": 44},
+        "noise_type": {"enum": ["white", "pink_voss16", "hum50", "am_babble_proxy", "echo"]},
+        "seed": {"type": "string", "pattern": "^[0-9a-f]{16}$"},
+        "target_snr_db": {"type": "number"},
+        "measured_snr_db": {"type": "number"},
+        "active_rms": {"type": "number", "exclusiveMinimum": 0},
+        "post_mix_gain": {"type": "number", "exclusiveMinimum": 0},
+        "clipping_count": {"type": "integer", "minimum": 0},
+        "parameters": {"type": "object"}
+      }
+    }
+  }
+}

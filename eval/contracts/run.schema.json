@@ -1,0 +1,98 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://medibytes.local/contracts/run.schema.json",
+  "title": "MediBytes immutable evaluation run",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "artifacts",
+    "composition",
+    "counts",
+    "environment_sha256",
+    "identity",
+    "limitations",
+    "method",
+    "record_type",
+    "run_id",
+    "schema_version",
+    "status"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "record_type": {"const": "run"},
+    "run_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"},
+    "status": {"const": "complete"},
+    "environment_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "method": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["adapter_sha256", "backend", "catalog_row", "default_disposition", "disposition_reason", "license", "model_path", "model_sha256", "source", "source_revision", "target_class", "variant_id"],
+      "properties": {
+        "adapter_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+        "backend": {"type": "string", "minLength": 1},
+        "source": {"type": "string", "minLength": 1},
+        "variant_id": {"type": "string", "minLength": 1},
+        "catalog_row": {"type": ["integer", "null"], "minimum": 2},
+        "default_disposition": {"enum": ["baseline", "control", "run_required", "blocked_prerequisite", "not_comparable", "blocked_target"]},
+        "disposition_reason": {"type": ["string", "null"]},
+        "source_revision": {"type": "string", "minLength": 1},
+        "license": {"type": "string", "minLength": 1},
+        "target_class": {"enum": ["realtime_laptop", "offline_laptop", "research_gpu", "target_only", "baseline", "control"]},
+        "model_path": {"type": ["string", "null"], "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"},
+        "model_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["catalog_sha256", "corpus_id", "downstream_code_sha256", "downstream_config_sha256", "enhancement_code_sha256", "implementation_sha256", "manifest_sha256", "method_config_sha256"],
+      "properties": {
+        "catalog_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "corpus_id": {"const": "pilot-15-v1"},
+        "downstream_code_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "enhancement_code_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "downstream_config_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "implementation_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "method_config_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "composition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["backend_count", "fallback_used", "layered", "mode"],
+      "properties": {
+        "mode": {"const": "single_backend"},
+        "backend_count": {"const": 1},
+        "layered": {"const": false},
+        "fallback_used": {"const": false}
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["expected_conditions", "failed", "ok", "recorded_conditions"],
+      "properties": {
+        "expected_conditions": {"type": "integer", "minimum": 0, "maximum": 30},
+        "recorded_conditions": {"type": "integer", "minimum": 0, "maximum": 30},
+        "ok": {"type": "integer", "minimum": 0, "maximum": 30},
+        "failed": {"type": "integer", "minimum": 0, "maximum": 30}
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["environment", "report_json", "report_md"],
+      "properties": {
+        "environment": {"const": "environment.json"},
+        "report_json": {"type": "string", "pattern": "^arms/[^/]+/[^/]+/report\\.json$"},
+        "report_md": {"type": "string", "pattern": "^arms/[^/]+/[^/]+/report\\.md$"}
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 1}
+    }
+  }
+}

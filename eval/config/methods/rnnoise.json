@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0.0",
+  "backend": "rnnoise",
+  "variant_id": "v0.2-0b50c45",
+  "executable": true,
+  "source": "https://github.com/xiph/rnnoise",
+  "source_revision": "v0.2",
+  "license": "BSD-3-Clause",
+  "target_class": "realtime_laptop",
+  "package": null,
+  "package_version": "0.2",
+  "model_path": "models/rnnoise/v0.2-0b50c45/rnnoise_data-0b50c45.tar.gz",
+  "model_sha256": null,
+  "parameters": {"native_sample_rate": 48000, "state_per_sample": true},
+  "timeout_s": 300.0
+}

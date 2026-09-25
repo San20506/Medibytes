@@ -3,15 +3,86 @@
   "title": "er_discharge entities (demo)",
   "type": "object",
   "required": ["drugs", "symptoms", "vitals", "allergies"],
+  "definitions": {
+    "entitySpan": {
+      "type": "object",
+      "properties": {
+        "start_char": {"type": "integer", "minimum": -1},
+        "end_char": {"type": "integer", "minimum": -1},
+        "span_status": {"enum": ["exact", "ambiguous", "not_found"]}
+      },
+      "required": ["start_char", "end_char", "span_status"],
+      "allOf": [
+        {
+          "if": {
+            "properties": {"span_status": {"const": "exact"}},
+            "required": ["span_status"]
+          },
+          "then": {
+            "properties": {
+              "start_char": {"minimum": 0},
+              "end_char": {"minimum": 0}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "span_status": {"enum": ["ambiguous", "not_found"]}
+            },
+            "required": ["span_status"]
+          },
+          "then": {
+            "properties": {
+              "start_char": {"const": -1},
+              "end_char": {"const": -1}
+            }
+          }
+        }
+      ]
+    },
+    "entity": {
+      "allOf": [{"$ref": "#/definitions/entitySpan"}]
+    },
+    "optionalEntity": {
+      "oneOf": [
+        {"type": "object", "maxProperties": 0},
+        {"$ref": "#/definitions/entity"}
+      ]
+    }
+  },
   "properties": {
-    "drugs": {"type": "array", "items": {"type": "object", "required": ["name"],
-      "properties": {"name": {"type": "string"}, "dose": {"type": ["number", "null"]},
-        "unit": {"type": ["string", "null"], "enum": ["mg", "mcg", "g", "ml", "U", null]},
-        "frequency": {"type": "string"}, "duration": {"type": "string"},
-        "confidence": {"type": "number"}, "color": {"type": "string"},
-        "source_sentence": {"type": "string"}, "negated": {"type": "boolean"}}}},
-    "symptoms": {"type": "array"}, "vitals": {"type": "array"},
-    "allergies": {"type": "array"}, "negations": {"type": "array"},
-    "diagnosis": {"type": "object"}, "followup": {"type": "object"}
+    "drugs": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          {"$ref": "#/definitions/entity"},
+          {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": {"type": "string"},
+              "dose": {"type": ["number", "null"]},
+              "unit": {
+                "type": ["string", "null"],
+                "enum": ["mg", "mcg", "g", "ml", "U", null]
+              },
+              "frequency": {"type": "string"},
+              "duration": {"type": "string"},
+              "confidence": {"type": "number"},
+              "color": {"type": "string"},
+              "source_sentence": {"type": "string"},
+              "negated": {"type": "boolean"}
+            }
+          }
+        ]
+      }
+    },
+    "symptoms": {"type": "array", "items": {"$ref": "#/definitions/entity"}},
+    "vitals": {"type": "array", "items": {"$ref": "#/definitions/entity"}},
+    "allergies": {"type": "array", "items": {"$ref": "#/definitions/entity"}},
+    "negations": {"type": "array", "items": {"$ref": "#/definitions/entity"}},
+    "diagnosis": {"$ref": "#/definitions/optionalEntity"},
+    "followup": {"$ref": "#/definitions/optionalEntity"}
   }
 }

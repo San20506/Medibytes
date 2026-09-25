@@ -22,7 +22,7 @@ try:
 except Exception:
     HAS_PLOT = False
 
-from audio_clean import _load_mono_float, clean_audio
+from audio_clean import BackendId, _load_mono_float, clean_audio
 from stt_extract import run_stt_extract
 from fill_template import fill_template
 
@@ -310,7 +310,11 @@ def _show_result(job_id, tj, ej, meta, raw_path=None, clean_path=None, prebuilt_
             except Exception as e:
                 st.warning(f"waveform skipped: {e}")
         if meta:
-            st.json({k: meta.get(k) for k in ("duration_s", "vad_ratio", "snr_before_db", "snr_after_db", "denoise") if k in meta})
+            st.json({k: meta.get(k) for k in (
+                "duration_s", "vad_ratio", "rms_dbfs_before", "rms_dbfs_after",
+                "requested_backend", "actual_backend", "variant_id", "model_sha256",
+                "runtime_version", "fallback_used", "input_sha256", "output_sha256",
+            ) if k in meta})
     with tab_text:
         st.code(tj.get("text", ""))
         st.success(tj.get("normalized_en", ""))
@@ -494,7 +498,7 @@ def main():
             with st.spinner("Stage 1 cleaning…"):
                 cleaned = os.path.join(tempfile.gettempdir(), f"{job_id}_clean.wav")
                 try:
-                    meta = clean_audio(tmp_in, cleaned)
+                    meta = clean_audio(tmp_in, cleaned, backend=BackendId.NONE)
                 except ValueError as e:
                     st.error(str(e))
                     return

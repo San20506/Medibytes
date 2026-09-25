@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0.0",
+  "backend": "percepnet",
+  "variant_id": "unofficial-8ffae433",
+  "executable": false,
+  "source": "https://github.com/jzi040941/PercepNet",
+  "license": "unverified",
+  "target_class": "realtime_laptop",
+  "source_revision": "8ffae4337d23f920176ac2a7426e84610fa338ab",
+  "package": null,
+  "package_version": null,
+  "model_path": null,
+  "model_sha256": null,
+  "parameters": {},
+  "timeout_s": 30.0,
+  "disposition": "blocked_prerequisite",
+  "reason": "no_authoritative_pretrained_checkpoint_or_reproducible_training_recipe"
+}

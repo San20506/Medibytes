@@ -6,6 +6,8 @@ normalize via unicode-range LID + hardcoded Hinglish map; extract via regex
 + drug_list_mini.json + optional spaCy-sm + optional Ollama qwen2.5:0.5b tidy.
 """
 import json
+from importlib import metadata as importlib_metadata
+
 import os
 import re
 import subprocess
@@ -128,19 +130,58 @@ def _mock_segments(text, lang="mix"):
         seg_id += 1
     return segs
 
+def _faster_whisper_runtime_version(module):
+    version = getattr(module, "__version__", None)
+    if version:
+        return str(version)
+    try:
+        return importlib_metadata.version("faster-whisper")
+    except importlib_metadata.PackageNotFoundError:
+        return None
 
-def transcribe(clean_wav, job_id="demo-001", model="tiny-int8"):
-    """Stage 2. Real faster-whisper if installed, else mock (filenames map above)."""
+
+def _mock_stt_provenance(requested_model, job_id):
+    return {
+        "job_id": job_id,
+        "provider": "mock",
+        "requested_model": requested_model,
+        "actual_model": "mock",
+        "device": None,
+        "compute_type": None,
+        "beam_size": None,
+        "word_timestamps": True,
+        "temperature": 0.0,
+        "runtime_version": None,
+        "model_hash": None,
+        "model_snapshot": None,
+        "is_mock": True,
+    }
+
+
+def _model_attribute(model, *names):
+    for name in names:
+        value = getattr(model, name, None)
+        if value is not None and str(value):
+            return str(value)
+    return None
+
+
+
+
+def transcribe(clean_wav, job_id="demo-001", model="tiny-int8", strict: bool = False):
+    """Transcribe with explicit mock fixtures or strict/fallback real STT."""
     if model == "mock":
         key = job_id if job_id in MOCK_TEXTS else "demo-001"
         return {"text": MOCK_TEXTS[key], "segments": _mock_segments(MOCK_TEXTS[key]),
-                "engine": "mock (forced --model mock)", "language": "mix"}
+                "engine": "mock (forced --model mock)", "language": "mix",
+                "stt_provenance": _mock_stt_provenance(model, job_id)}
     try:
+        import faster_whisper as faster_whisper_module
         from faster_whisper import WhisperModel
         size = {"tiny-int8": "tiny", "base-int8": "base", "small-int8": "small"}.get(model, "tiny")
         wm = WhisperModel(size, device="cpu", compute_type="int8")
         segments, info = wm.transcribe(
-            clean_wav, beam_size=1, word_timestamps=True,
+            clean_wav, beam_size=1, word_timestamps=True, temperature=0.0,
             no_speech_threshold=0.6, compression_ratio_threshold=2.4,
         )
         segs, full = [], []
@@ -155,9 +196,30 @@ def transcribe(clean_wav, job_id="demo-001", model="tiny-int8"):
             if re.search(r"(thank you\s*){3,}", s.text, re.I):
                 segs[-1]["confidence"] = 0.2
         text = " ".join(full)
-        return {"text": text, "segments": segs, "engine": f"faster-whisper:{size}-cpu-int8",
-                "language": getattr(info, "language", "en")}
-    except Exception as e:
+        provenance = {
+            "job_id": job_id,
+            "provider": "faster-whisper",
+            "requested_model": model,
+            "actual_model": size,
+            "device": "cpu",
+            "compute_type": "int8",
+            "word_timestamps": True,
+            "temperature": 0.0,
+            "beam_size": 1,
+            "runtime_version": _faster_whisper_runtime_version(faster_whisper_module),
+            "model_hash": _model_attribute(wm, "model_sha256", "model_hash"),
+            "model_snapshot": _model_attribute(
+                wm, "model_snapshot", "snapshot", "model_path"
+            ),
+            "is_mock": False,
+        }
+        return {"text": text, "segments": segs,
+                "engine": f"faster-whisper:{size}-cpu-int8",
+                "language": getattr(info, "language", "en"),
+                "stt_provenance": provenance}
+    except Exception as exc:
+        if strict:
+            raise
         key = job_id if job_id in MOCK_TEXTS else None
         if key is None:
             base = os.path.splitext(os.path.basename(clean_wav))[0].lower()
@@ -168,7 +230,10 @@ def transcribe(clean_wav, job_id="demo-001", model="tiny-int8"):
             key = key or "demo-001"
         text = MOCK_TEXTS[key]
         return {"text": text, "segments": _mock_segments(text),
-                "engine": f"mock (no faster-whisper: {type(e).__name__})", "language": "mix"}
+                "engine": f"mock (no faster-whisper: {type(exc).__name__})",
+                "language": "mix",
+                "stt_provenance": _mock_stt_provenance(model, job_id)}
+
 
 
 def detect_lang_tag(text):
@@ -235,6 +300,35 @@ def normalize_text(text):
 
 def _negated(sentence):
     return bool(NEG_PAT.search(sentence))
+
+def _annotate_entity_span(entity, normalized_en):
+    anchor = next(
+        (entity.get(key).strip() for key in ("name", "text", "span")
+         if isinstance(entity.get(key), str) and entity.get(key).strip()),
+        None,
+    )
+    matches = list(re.finditer(re.escape(anchor), normalized_en, re.I)) if anchor else []
+    if len(matches) == 1:
+        entity.update(start_char=matches[0].start(), end_char=matches[0].end(),
+                      span_status="exact")
+    else:
+        entity.update(start_char=-1, end_char=-1,
+                      span_status="ambiguous" if matches else "not_found")
+    return entity
+
+
+def _annotate_entity_spans(entities, normalized_en):
+    for group in ("drugs", "symptoms", "vitals", "allergies", "negations"):
+        for entity in entities.get(group, []):
+            if isinstance(entity, dict):
+                _annotate_entity_span(entity, normalized_en)
+    for group in ("diagnosis", "followup"):
+        entity = entities.get(group)
+        if isinstance(entity, dict) and entity:
+            _annotate_entity_span(entity, normalized_en)
+    return entities
+
+
 
 
 def extract_entities(text, normalized_en, segments):
@@ -362,9 +456,12 @@ def extract_entities(text, normalized_en, segments):
         _ = nlp(text[:500])
     except Exception:
         pass
-    return {"drugs": drugs, "symptoms": symptoms, "vitals": vitals,
-            "allergies": allergies, "negations": negations,
-            "diagnosis": diagnosis, "followup": followup}
+    return _annotate_entity_spans(
+        {"drugs": drugs, "symptoms": symptoms, "vitals": vitals,
+         "allergies": allergies, "negations": negations,
+         "diagnosis": diagnosis, "followup": followup},
+        normalized_en,
+    )
 
 
 UNITS_OK = {"mg", "mcg", "g", "ml", "U"}
@@ -426,8 +523,11 @@ def ollama_tidy(entities, normalized_en, model="llama3.2:3b", timeout=60):
     return entities
 
 
-def run_stt_extract(clean_wav, job_id="demo-001", use_llm="auto", model="tiny-int8", ollama_model="llama3.2:3b"):
-    stt = transcribe(clean_wav, job_id, model=model)
+def run_stt_extract(
+    clean_wav, job_id="demo-001", use_llm="auto", model="tiny-int8",
+    ollama_model="llama3.2:3b", strict: bool = False,
+):
+    stt = transcribe(clean_wav, job_id, model=model, strict=strict)
     norm = normalize_text(stt["text"])
     # refresh segment lang tags with demo LID
     for s in stt["segments"]:
@@ -451,8 +551,10 @@ def run_stt_extract(clean_wav, job_id="demo-001", use_llm="auto", model="tiny-in
             ent = ollama_tidy(ent, norm["normalized_en"], model=ollama_model)
         elif use_llm == "auto" and llm_reason:
             ent["llm_engine"] = f"regex-fallback ({llm_reason})"
+    ent = _annotate_entity_spans(ent, norm["normalized_en"])
     transcript_json = {"job_id": job_id, "text": stt["text"], "language": norm["lang_tag"],
                        "segments": stt["segments"], "normalized_en": norm["normalized_en"],
-                       "normalizations": norm["normalizations"], "stt_engine": stt["engine"]}
+                       "normalizations": norm["normalizations"], "stt_engine": stt["engine"],
+                       "stt_provenance": stt["stt_provenance"]}
     entities_json = {"job_id": job_id, **ent}
     return transcript_json, entities_json

@@ -1,0 +1,168 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://medibytes.local/contracts/report.schema.json",
+  "title": "MediBytes individual arm report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "aggregate",
+    "artifacts",
+    "comparison_eligible",
+    "conditions",
+    "counts",
+    "limitations",
+    "method",
+    "production_assessment",
+    "record_type",
+    "run_id",
+    "schema_version",
+    "status"
+  ],
+  "properties": {
+    "$schema": {"type": "string"},
+    "schema_version": {"const": "1.0.0"},
+    "record_type": {"const": "report"},
+    "run_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"},
+    "status": {"enum": ["observed", "inconclusive", "invalid", "blocked_prerequisite", "not_comparable", "blocked_target", "failed_runtime"]},
+    "comparison_eligible": {"type": "boolean"},
+    "method": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["backend", "catalog_row", "default_disposition", "disposition_reason", "license", "source", "source_revision", "target_class", "variant_id"],
+      "properties": {
+        "backend": {"type": "string", "minLength": 1},
+        "source": {"type": "string", "minLength": 1},
+        "variant_id": {"type": "string", "minLength": 1},
+        "disposition_reason": {"type": ["string", "null"]},
+        "catalog_row": {"type": ["integer", "null"]},
+        "default_disposition": {"type": "string", "minLength": 1},
+        "source_revision": {"type": "string", "minLength": 1},
+        "license": {"type": "string", "minLength": 1},
+        "target_class": {"type": "string", "minLength": 1}
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blocked", "failed", "ok", "oom", "other", "timeout", "total"],
+      "properties": {
+        "total": {"type": "integer", "minimum": 0, "maximum": 30},
+        "ok": {"type": "integer", "minimum": 0, "maximum": 30},
+        "failed": {"type": "integer", "minimum": 0, "maximum": 30},
+        "oom": {"type": "integer", "minimum": 0, "maximum": 30},
+        "timeout": {"type": "integer", "minimum": 0, "maximum": 30},
+        "blocked": {"type": "integer", "minimum": 0, "maximum": 30},
+        "other": {"type": "integer", "minimum": 0, "maximum": 30}
+      }
+    },
+    "conditions": {
+      "type": "array",
+      "maxItems": 30,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["actual_backend", "bucket", "condition_id", "group_id", "metrics_available", "noise_type", "status"],
+        "properties": {
+          "condition_id": {"type": "string", "pattern": "^sample-[0-9]{3}-(clean|noisy)$"},
+          "group_id": {"type": "string", "minLength": 1},
+          "bucket": {"type": "string", "minLength": 1},
+          "noise_type": {"type": "string", "minLength": 1},
+          "status": {"type": "string", "minLength": 1},
+          "actual_backend": {"type": ["string", "null"]},
+          "metrics_available": {"type": "boolean"}
+        }
+      }
+    },
+    "aggregate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["audio", "clinical", "resources", "text"],
+      "properties": {
+        "audio": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["clipping_ratio_mean", "delta_snr_db_mean", "duration_drift_samples_max", "lsd_mean", "pesq_mos_lqo_mean", "si_sdr_db_mean", "snr_db_mean", "stoi_mean", "valid_audio_count"],
+          "properties": {
+            "valid_audio_count": {"type": "integer", "minimum": 0, "maximum": 30},
+            "snr_db_mean": {"type": ["number", "null"]},
+            "delta_snr_db_mean": {"type": ["number", "null"]},
+            "si_sdr_db_mean": {"type": ["number", "null"]},
+            "pesq_mos_lqo_mean": {"type": ["number", "null"]},
+            "stoi_mean": {"type": ["number", "null"]},
+            "lsd_mean": {"type": ["number", "null"]},
+            "clipping_ratio_mean": {"type": ["number", "null"]},
+            "duration_drift_samples_max": {"type": ["integer", "null"]}
+          }
+        },
+        "text": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "required": ["exact_match_rate", "false_positive_fields", "normalized_wer", "wer", "wer_denominator", "wer_numerator"],
+          "properties": {
+            "wer_numerator": {"type": ["integer", "null"], "minimum": 0},
+            "wer_denominator": {"type": ["integer", "null"], "minimum": 0},
+            "wer": {"type": ["number", "null"], "minimum": 0},
+            "normalized_wer": {"type": ["number", "null"], "minimum": 0},
+            "exact_match_rate": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+            "false_positive_fields": {"type": ["integer", "null"], "minimum": 0}
+          }
+        },
+        "clinical": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["clinical_ner_f1", "critical_error_rate", "field_accuracy", "medical_wer", "medication_dose_accuracy", "status"],
+          "properties": {
+            "status": {"const": "not_applicable"},
+            "medical_wer": {"$ref": "#/definitions/notApplicable"},
+            "medication_dose_accuracy": {"$ref": "#/definitions/notApplicable"},
+            "clinical_ner_f1": {"$ref": "#/definitions/notApplicable"},
+            "field_accuracy": {"$ref": "#/definitions/notApplicable"},
+            "critical_error_rate": {"$ref": "#/definitions/notApplicable"}
+          }
+        },
+        "resources": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["cold_total_s_mean", "inference_p50_ms", "inference_p95_ms", "inference_p99_ms", "peak_rss_bytes_max", "peak_vram_bytes", "realtime_factor_mean"],
+          "properties": {
+            "cold_total_s_mean": {"type": ["number", "null"], "minimum": 0},
+            "inference_p50_ms": {"type": ["number", "null"], "minimum": 0},
+            "inference_p95_ms": {"type": ["number", "null"], "minimum": 0},
+            "inference_p99_ms": {"type": ["number", "null"], "minimum": 0},
+            "realtime_factor_mean": {"type": ["number", "null"], "minimum": 0},
+            "peak_rss_bytes_max": {"type": ["integer", "null"], "minimum": 0},
+            "peak_vram_bytes": {"oneOf": [{"type": "integer", "minimum": 0}, {"const": "unavailable"}]}
+          }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["report_json", "report_md", "run_json", "status_files_sha256"],
+      "properties": {
+        "run_json": {"const": "../../../run.json"},
+        "report_json": {"const": "report.json"},
+        "report_md": {"const": "report.md"},
+        "status_files_sha256": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "production_assessment": {"const": "not_assessed_nonclinical_smoke_corpus"}
+  },
+  "definitions": {
+    "notApplicable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason", "status"],
+      "properties": {
+        "status": {"const": "not_applicable"},
+        "reason": {"const": "non_clinical_source_reference_corpus"}
+      }
+    }
+  }
+}

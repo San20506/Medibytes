@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0.0",
+  "backend": "cmsis-dsp",
+  "variant_id": "1.18.0",
+  "executable": false,
+  "source": "https://github.com/ARM-software/CMSIS-DSP",
+  "license": "Apache-2.0",
+  "target_class": "target_only",
+  "source_revision": "4b6f26593e9d3b24a9bc93b3646a3a859238eae2",
+  "package": null,
+  "package_version": null,
+  "model_path": null,
+  "model_sha256": null,
+  "parameters": {},
+  "timeout_s": 30.0,
+  "disposition": "blocked_target",
+  "reason": "no_selected_enhancement_algorithm_or_target_hardware"
+}

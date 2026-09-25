@@ -1,0 +1,103 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://medibytes.local/contracts/condition.schema.json",
+  "title": "MediBytes terminal per-condition result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "actual_backend",
+    "artifacts",
+    "bucket",
+    "condition_kind",
+    "completed_at",
+    "condition_id",
+    "downstream_status",
+    "enhanced",
+    "error",
+    "fallback_used",
+    "group_id",
+    "input",
+    "noise_type",
+    "record_type",
+    "repeat_hashes",
+    "requested_backend",
+    "sample_id",
+    "schema_version",
+    "stage",
+    "started_at",
+    "status",
+    "variant_id"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "record_type": {"const": "condition"},
+    "condition_id": {"type": "string", "pattern": "^sample-[0-9]{3}-(clean|noisy)$"},
+    "sample_id": {"type": "string", "pattern": "^sample-[0-9]{3}$"},
+    "group_id": {"type": "string", "minLength": 1},
+    "bucket": {"enum": ["en-US-proxy", "hi", "ta", "hi-en-code-mix"]},
+    "noise_type": {"enum": ["clean", "white", "pink_voss16", "hum50", "am_babble_proxy", "echo"]},
+    "actual_backend": {"enum": [null, "none", "noisereduce", "rnnoise", "deepfilternet3", "dpdfnet2-onnx", "sherpa-gtcrn-simple", "percepnet", "nemo-se-den-sb-16k", "speecht5", "speex-denoise", "speechbrain-metricgan-plus", "voicefixer-mode0", "cmsis-dsp", "spectral-subtraction"]},
+    "requested_backend": {"enum": ["none", "noisereduce", "rnnoise", "deepfilternet3", "dpdfnet2-onnx", "sherpa-gtcrn-simple", "percepnet", "nemo-se-den-sb-16k", "speecht5", "speex-denoise", "speechbrain-metricgan-plus", "voicefixer-mode0", "cmsis-dsp", "spectral-subtraction"]},
+    "condition_kind": {"enum": ["clean", "noisy"]},
+    "variant_id": {"type": "string", "minLength": 1},
+    "fallback_used": {"const": false},
+    "status": {"enum": ["ok", "failed", "oom", "timeout", "rejected", "blocked_prerequisite", "not_comparable", "blocked_target", "failed_runtime"]},
+    "stage": {"enum": ["complete", "reference", "accuracy", "warmup", "repeat-1", "repeat-2", "repeat-3", "measurement", "downstream", "verification"]},
+    "downstream_status": {"enum": ["not_run", "ok", "failed"]},
+    "started_at": {"type": "string", "format": "date-time"},
+    "completed_at": {"type": "string", "format": "date-time"},
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sample_count", "sample_rate", "sha256"],
+      "properties": {
+        "path": {"type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "sample_count": {"type": "integer", "minimum": 1},
+        "sample_rate": {"const": 16000}
+      }
+    },
+    "enhanced": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["actual_backend", "channels", "path", "sample_count", "sample_rate", "sha256"],
+      "properties": {
+        "actual_backend": {"enum": ["none", "noisereduce", "rnnoise", "deepfilternet3", "dpdfnet2-onnx", "sherpa-gtcrn-simple", "percepnet", "nemo-se-den-sb-16k", "speecht5", "speex-denoise", "speechbrain-metricgan-plus", "voicefixer-mode0", "cmsis-dsp", "spectral-subtraction"]},
+        "path": {"type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "sample_count": {"type": "integer", "minimum": 1},
+        "sample_rate": {"const": 16000},
+        "channels": {"const": 1}
+      }
+    },
+    "repeat_hashes": {
+      "type": "array",
+      "maxItems": 4,
+      "items": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+    },
+    "error": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["message", "traceback", "type"],
+      "properties": {
+        "type": {"type": "string", "minLength": 1},
+        "message": {"type": "string", "minLength": 1},
+        "traceback": {"type": "string"}
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enhancement", "entities", "fields", "metrics", "resources", "status", "transcript"],
+      "properties": {
+        "enhancement": {"type": "string", "pattern": "^arms/[^/]+/[^/]+/conditions/[^/]+/enhancement\\.json$"},
+        "transcript": {"type": "string", "pattern": "^arms/[^/]+/[^/]+/conditions/[^/]+/transcript\\.json$"},
+        "entities": {"type": "string", "pattern": "^arms/[^/]+/[^/]+/conditions/[^/]+/entities\\.json$"},
+        "fields": {"type": "string", "pattern": "^arms/[^/]+/[^/]+/conditions/[^/]+/fields\\.json$"},
+        "resources": {"type": "string", "pattern": "^arms/[^/]+/[^/]+/conditions/[^/]+/resources\\.json$"},
+        "metrics": {"type": "string", "pattern": "^arms/[^/]+/[^/]+/conditions/[^/]+/metrics\\.json$"},
+        "status": {"type": "string", "pattern": "^arms/[^/]+/[^/]+/conditions/[^/]+/status\\.json$"}
+      }
+    }
+  }
+}
