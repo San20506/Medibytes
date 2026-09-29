@@ -6,6 +6,44 @@ detail (OpenSpec change, evidence directory, or commit).
 
 ## Unreleased
 
+### Product repo: audio-diagnostic-routing plan, all 7 tasks (2026-09-29)
+
+Built in a separate repo, `/home/sandy/Projects/Product`, branch
+`feature/audio-diagnostic-pipeline-task1` (commits `52cc141`..`8fc346f`,
+pushed). Not this repo's concern operationally, but recorded here since it
+was worked in the same session and the user asked to keep changelogs
+current. Full detail is in that repo's own commit messages and
+`docs/audio-pipeline-operations.md`; summary:
+
+- **Task 1**: job API (SQLite state machine, bounded 4-job admission,
+  path-traversal-safe per-job storage, an ASGI body-size-limit middleware).
+- **Task 2**: bounded FFmpeg decoding (native-rate clipping evidence before
+  any resample can hide it, reject-not-truncate duration bounds).
+- **Task 3**: VAD/clipping/SNR diagnostics. **Shipped with a real bug**
+  (Silero VAD fed context-free windows, scored genuine speech at ~0.001
+  probability, indistinguishable from silence) that a too-weak real-model
+  test didn't catch — found and fixed during Task 6 via actual end-to-end
+  HTTP testing, not a unit test. Fixed test now asserts an absolute
+  probability floor, not just a relative comparison.
+- **Task 4**: pure routing policy + resource admission with
+  pause/resume utilization hysteresis.
+- **Task 5**: real GTCRN enhancement (ONNX, hand-verified STFT/ISTFT
+  matching the upstream PyTorch reference to float32 precision) and
+  faster-whisper ASR, both MIT-licensed and sha256/revision-pinned.
+- **Task 6**: supervised end-to-end execution — a real spawned worker
+  process with crash/hang recovery, verified twice end to end with actual
+  HTTP requests against real audio (once showing the Task 3 bug, once
+  after the fix, transcript exactly matching the known reference text).
+- **Task 7**: calibration script + operations doc, honestly scoped — the
+  plan's own dataset requirements (fan/keyboard noise, music, competing
+  speakers, multiple languages) need real recordings this environment
+  doesn't have; shipped a working script + real-audio smoke corpus proving
+  the tooling itself is correct, explicit that it is not a calibration
+  result. `AUDIO_PIPELINE_ENABLED` stays `false` by default.
+
+118/118 tests passing throughout. DPCRN intentionally not implemented, per
+the plan's own "keep it disabled until reference parity passes" guidance.
+
 ### Git state (2026-09-29)
 
 - Committed the integration decision below to branch
