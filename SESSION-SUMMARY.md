@@ -64,60 +64,74 @@ the full "what has and hasn't been verified" accounting.
 
 ## 2. What we actually know about quality today
 
+**Updated after actually measuring** (2026-09-29, second pass): found real
+test data already sitting in the eval data root from an earlier session (40
+real English bases with reference transcripts + a real DEMAND-noise matrix,
+`~/.local/share/medibytes-eval/corpus/en-40-v1` + `matrix-en-40`) — no
+need to build a smoke corpus, a real one already existed. Fixed the WER
+metric's normalization bug, then ran 120 real files × 3 arms = 360
+evaluations against the actual Product pipeline. Full detail in the Product
+repo's `evidence/en40-calibration-2026-09-29/`.
+
 | Measurement | Value | Confidence |
 |---|---|---|
-| Denoising WER impact (English, n=40) | No candidate helps; both rejected | **High** — pre-registered, bootstrapped |
+| Denoising WER impact (English, n=40, en_pilot) | No candidate helps; both rejected | **High** — pre-registered, bootstrapped |
 | Denoising WER impact (real noise, matrix-v2) | Every backend made WER worse | **High** — 1,440 scored conditions |
+| **Pipeline routing WER impact (n=120, real corpus)** | **`dynamic_routing` 35% relatively worse than always-direct-ASR** (0.201 vs 0.149 weighted-mean WER on 80 noisy conditions) | **High** — real corpus, real routing code, not a fake |
+| Clean-speech pipeline WER (n=40, normalized) | **0.095** | **High** — real corpus, fixed metric |
 | Hindi/Tamil decoder: `base` vs `small` | `base` = wrong script/garbage; `small` = usable | **High** — direct comparison, real audio |
-| GTCRN enhancement latency | 420–750ms p50/p95 on 2–8s clips | **Medium** — n=7, but consistent |
-| Pipeline WER (smoke corpus) | ~10–15% on clean English | **Low** — n=4, unnormalized metric (see below) |
-| False-discard rate | 0/7 smoke conditions | **Very low** — no near-boundary case tested |
-| Routing thresholds (20dB/5dB/5%) | Untouched "engineering defaults" | **None** — never calibrated |
+| GTCRN enhancement latency | 500–820ms p50/p95 on 2–8s clips (n=120) | **Medium-high** |
+| False-discard rate | 0/120 real conditions | **Medium** — still no near-5%-boundary case tested |
+| Routing thresholds (20dB/5dB/5%) | Untouched "engineering defaults" — **and now shown actively harmful**, not just uncalibrated | **High** |
 
 ## 3. Path to ~95% — ranked by evidence-to-effort ratio
 
-1. **Fix WER measurement before trusting any quality number.** The
-   pipeline's own eval script uses unnormalized word matching (no
-   punctuation/number-word normalization) — the reported 10–15% WER on
-   clean speech is inflated by measurement artifact, not necessarily real
-   error. *You cannot know today whether you're at 80% or 95% quality
-   because the ruler itself is wrong.* Effort: low (reuse Medibytes'
-   `eval/metrics.py::frozen_normalize`-style normalization). This is the
-   single highest-leverage next step — everything else is calibrated
-   against a number we don't trust yet.
-2. **Build a real calibration corpus and run Task 7's evaluation for
-   real.** Everything measured so far is smoke-scale (n=1–5 per
-   condition). The plan's own release gates require bootstrap-uncertainty
-   WER on a real held-out set across languages/noise types, plus a
-   reviewed false-discard set — none of that exists yet. This is the
-   actual gate between "looks plausible" and "95%, defensibly."
-3. **Upgrade the ASR decoder tier, not the denoiser.** This session's own
-   evidence rules out denoising as a lever (rejected at n=40, p=0.87/0.03)
-   but shows decoder tier is real and large (Hindi/Tamil: garbage → usable
-   from one size bump). Testing `small`/`medium` on English, and
-   IndicConformer/IndicWhisper on Hindi/Tamil, is the evidence-backed next
-   move — not further denoiser tuning.
-4. **Unblock IndicConformer/IndicWhisper.** License-clear, ready to test,
-   blocked only by this session's sandbox disk-write cap. Running the
-   install outside that sandbox (or with the cap raised) is a low-effort
-   unlock specifically for Hindi/Tamil quality, where generic Whisper is
-   currently the weak point.
-5. **Stop investing in denoising further** unless the calibration corpus
-   (item 2) surfaces a specific condition where it helps. Two adequately-
-   powered studies now agree it doesn't, and one candidate made things
-   catastrophically worse (+1264% WER on real noise). Redirecting that
-   effort to items 1–4 has a better payoff.
-6. **Calibrate the routing thresholds and close the false-discard blind
-   spot.** The 20dB/5dB SNR bands and 5% speech-fraction discard rule are
-   still the plan's original untouched defaults. The specific edge case
-   the plan itself warns about — a brief valid sentence inside a long
-   silent recording — was never actually tested near the 5% boundary.
-7. **GTCRN latency** (420–750ms vs. upstream's 0.07 RTF claim) is real but
-   lower priority than the above, since current evidence says enhancement
-   isn't earning its cost anyway.
-8. **Operational hardening** (retention sweep not yet implemented, no
-   accelerator path exercised, no competing-workload measurement) — needed
-   for production readiness but orthogonal to transcription accuracy.
+**Done, this pass**: WER measurement fixed (was counting "U.N." vs "un" as
+an error); a real, properly-sized corpus was found and used, not built
+from scratch — 4x larger than the plan's own held-out-set ambition needs
+to start being useful. Both items that were "#1 highest leverage" in the
+previous version of this list are now closed.
+
+1. **Fix the routing thresholds — this is now the single highest-priority
+   item, upgraded from #6 by the measurement above.** The pipeline's own
+   `dynamic_routing` is *choosing* to enhance in exactly the conditions
+   where enhancement hurts, making its real-world WER measurably worse
+   than the trivial "always use direct ASR" baseline. This isn't a
+   hypothetical gap anymore — it's quantified, real-corpus harm. Fix:
+   raise the SNR bands in `routing.py` (or disable `enhance_gtcrn` as a
+   selectable route until re-calibrated) so `direct_asr` becomes the
+   default near-everywhere GTCRN is currently chosen. Not applied yet —
+   flagged for confirmation since it changes already-committed default
+   behavior.
+2. **Upgrade the ASR decoder tier, not the denoiser.** Now confirmed
+   twice at real scale: denoising doesn't help (en_pilot n=40, and now
+   this n=120 pipeline-level run) but decoder tier does (Hindi/Tamil:
+   garbage → usable from one size bump). Testing `small`/`medium` on
+   English against this same 40-base corpus, and IndicConformer/
+   IndicWhisper on Hindi/Tamil, is the evidence-backed next move.
+3. **Unblock IndicConformer/IndicWhisper.** License-clear, ready to test,
+   blocked only by a sandbox disk-write cap, not the models. Still
+   unresolved.
+4. **Extend the n=120 real-corpus run to a genuine held-out split with
+   bootstrap CIs**, and add a Hindi/Tamil arm using the pilot-15-v1
+   corpus's own native-script references (already sitting in
+   `evidence/pilot-b1/test-data/reference-transcripts.csv` — likely
+   another "check the folders before building" case). Needed to move from
+   "real and large enough to trust a decision" to "meets the plan's own
+   section-11 release-gate bar."
+5. **Test a boundary case for the false-discard risk.** 0/120 real
+   conditions were false-discarded, but none was built to sit near the 5%
+   speech-fraction threshold — the plan's own named risk (a brief valid
+   sentence inside a long silent recording) still hasn't been tested at
+   the boundary.
+6. **Stop investing in denoising further.** Now three independent studies
+   agree (en_pilot n=40, matrix-v2, and this session's n=120 pipeline
+   run) — redirect effort to items 1–4.
+7. **GTCRN latency** (500–820ms vs. upstream's 0.07 RTF claim) — real, but
+   lower priority than fixing the routing that's choosing to pay it for a
+   quality loss.
+8. **Operational hardening** (retention sweep, accelerator path,
+   competing-workload measurement) — orthogonal to transcription accuracy.
 
 ## References
 
