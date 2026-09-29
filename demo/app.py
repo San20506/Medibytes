@@ -443,8 +443,8 @@ def main():
         st.header("Controls")
         sample = st.selectbox("Cached sample", ["(upload a file)"] + CACHED)
         up = st.file_uploader("Or drop .wav/.mp3/.m4a (≤100MB, ≤30min)", type=["wav", "mp3", "m4a"])
-        model = st.selectbox("STT model", ["tiny-int8 (fast)", "base-int8 (better)", "small-int8 (best CPU)", "mock (instant script)"],
-                             index=1)
+        model = st.selectbox("STT model", ["small-int8 (default, best CPU)", "base-int8 (faster, unusable on hi/ta/code-mix)", "tiny-int8 (fastest, unusable on hi/ta/code-mix)", "mock (instant script)"],
+                             index=0)
         model_key = model.split()[0]
         template = st.selectbox("Template", ["er_discharge", "none"], index=0)
         

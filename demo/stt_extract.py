@@ -168,7 +168,7 @@ def _model_attribute(model, *names):
 
 
 
-def transcribe(clean_wav, job_id="demo-001", model="tiny-int8", strict: bool = False):
+def transcribe(clean_wav, job_id="demo-001", model="small-int8", strict: bool = False):
     """Transcribe with explicit mock fixtures or strict/fallback real STT."""
     if model == "mock":
         key = job_id if job_id in MOCK_TEXTS else "demo-001"
@@ -524,7 +524,7 @@ def ollama_tidy(entities, normalized_en, model="llama3.2:3b", timeout=60):
 
 
 def run_stt_extract(
-    clean_wav, job_id="demo-001", use_llm="auto", model="tiny-int8",
+    clean_wav, job_id="demo-001", use_llm="auto", model="small-int8",
     ollama_model="llama3.2:3b", strict: bool = False,
 ):
     stt = transcribe(clean_wav, job_id, model=model, strict=strict)

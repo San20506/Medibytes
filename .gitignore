@@ -31,3 +31,9 @@ eval/.cache/
 # demo/transcripts/
 # demo/entities/
 # demo/exports/
+/.hypothesis/
+
+# Evaluation evidence: reports, manifests and workbooks only.
+# Audio, models and run artefacts stay in the data root and are gitignored
+# upstream; manifests reference them by absolute path and SHA-256.
+/evidence/
