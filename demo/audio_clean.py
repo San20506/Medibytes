@@ -76,12 +76,35 @@ def check_audio(path: Path) -> dict[str, JSONValue]:
     return {"size": size, "duration": duration}
 
 
+def _antialias_lowpass(audio: np.ndarray, source_rate: int, target_rate: int) -> np.ndarray:
+    """Windowed-sinc low-pass at the target Nyquist, for use before decimation.
+
+    Without this, ``np.interp`` decimation folds every component above the
+    target Nyquist back into the speech band -- a 12kHz component in 44.1kHz
+    input reappears at 4kHz after a drop to 16kHz, squarely on top of speech.
+    Kept numpy-only on purpose: scipy is not a demo dependency.  ``mode="same"``
+    with edge padding preserves the exact length the callers' contracts assume.
+    """
+    taps = 101
+    if audio.size < taps:
+        return np.asarray(audio, dtype=np.float32)
+    cutoff = 0.5 * target_rate / source_rate  # cycles/sample, target Nyquist
+    offsets = np.arange(taps) - (taps - 1) / 2.0
+    kernel = 2.0 * cutoff * np.sinc(2.0 * cutoff * offsets) * np.hamming(taps)
+    kernel /= kernel.sum()
+    pad = taps // 2
+    padded = np.pad(np.asarray(audio, dtype=np.float64), pad, mode="edge")
+    return np.convolve(padded, kernel, mode="valid").astype(np.float32)
+
+
 def _resample_linear(audio: np.ndarray, source_rate: int, target_rate: int) -> np.ndarray:
     """Duration-preserving endpoint resampling used at the shared boundary."""
     if source_rate == target_rate:
         return np.asarray(audio, dtype=np.float32).copy()
     if audio.size == 0:
         return np.empty(0, dtype=np.float32)
+    if target_rate < source_rate:
+        audio = _antialias_lowpass(audio, source_rate, target_rate)
     target_length = max(1, int(round(audio.size * target_rate / source_rate)))
     if audio.size == 1:
         return np.full(target_length, float(audio[0]), dtype=np.float32)

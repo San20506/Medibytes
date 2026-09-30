@@ -167,3 +167,72 @@ def test_run_backend_rejects_fallback_metadata(monkeypatch: pytest.MonkeyPatch) 
     config = EnhancementConfig(backend=BackendId.NONE, variant_id="none")
     with pytest.raises(BackendContractError, match="fallback"):
         run_backend(np.ones(160, dtype=np.float32), 16000, config)
+
+
+# --- downsampling must not alias (regression: bare np.interp had no filter) ---
+
+
+def _band_energy(signal: np.ndarray, rate: int, low: float, high: float) -> float:
+    spectrum = np.abs(np.fft.rfft(signal))
+    freqs = np.fft.rfftfreq(signal.size, 1.0 / rate)
+    band = (freqs >= low) & (freqs < high)
+    return float(np.sum(spectrum[band] ** 2))
+
+
+def test_downsampling_does_not_fold_supersonic_tone_into_speech_band() -> None:
+    """A 12kHz tone at 44.1kHz must not reappear at 4kHz after the drop to 16kHz.
+
+    Every corpus file used in the en_pilot and n=120 studies is already 16kHz,
+    so this decimation path was never exercised by any measurement -- a real
+    44.1/48kHz phone recording is the first thing to hit it.
+    """
+    from demo.audio_clean import _resample_linear
+
+    source_rate, target_rate, tone_hz = 44100, 16000, 12000
+    t = np.arange(source_rate, dtype=np.float64) / source_rate
+    tone = np.sin(2.0 * np.pi * tone_hz * t).astype(np.float32)
+
+    out = _resample_linear(tone, source_rate, target_rate)
+
+    # Scale reference: an in-band tone of equal amplitude through the same path.
+    # (Dividing the alias by the OUTPUT's own total energy would be circular --
+    # once the tone is suppressed the residual IS most of what is left.)
+    reference = np.sin(2.0 * np.pi * 1000.0 * t).astype(np.float32)
+    passband = _band_energy(
+        _resample_linear(reference, source_rate, target_rate), target_rate, 900.0, 1100.0
+    )
+
+    # 12kHz sampled at 16kHz folds to |12000 - 16000| = 4000Hz.
+    alias = _band_energy(out, target_rate, 3800.0, 4200.0)
+    assert passband > 0.0
+    # Unfiltered np.interp leaves the image at roughly full strength (~0 dB);
+    # the low-pass puts it near -58 dB. Anything above -40 dB means it is gone.
+    assert alias / passband < 1e-4, (
+        f"aliased image at {10 * np.log10(alias / passband):.1f} dB relative to "
+        "passband; the anti-alias low-pass is missing or mis-tuned"
+    )
+
+
+def test_antialias_filter_preserves_length_contract() -> None:
+    """clean_audio's length checks depend on exact sample counts."""
+    from demo.audio_clean import _antialias_lowpass, _resample_linear
+
+    audio = np.random.default_rng(0).standard_normal(44100).astype(np.float32)
+    assert _antialias_lowpass(audio, 44100, 16000).size == audio.size
+    assert _resample_linear(audio, 44100, 16000).size == 16000
+    # Upsampling must stay untouched by the new branch.
+    assert _resample_linear(audio[:16000], 16000, 44100).size == 44100
+
+
+def test_antialias_passes_speech_band_through() -> None:
+    """The filter must not gut the band we actually care about."""
+    from demo.audio_clean import _resample_linear
+
+    source_rate, target_rate = 44100, 16000
+    t = np.arange(source_rate, dtype=np.float64) / source_rate
+    tone = np.sin(2.0 * np.pi * 1000.0 * t).astype(np.float32)
+
+    out = _resample_linear(tone, source_rate, target_rate)
+    kept = _band_energy(out, target_rate, 900.0, 1100.0)
+    total = _band_energy(out, target_rate, 0.0, target_rate / 2.0)
+    assert kept / total > 0.95
