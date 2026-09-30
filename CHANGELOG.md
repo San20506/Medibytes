@@ -6,6 +6,59 @@ detail (OpenSpec change, evidence directory, or commit).
 
 ## Unreleased
 
+### Pipeline output optimization: routing fix + Stage-1 anti-aliasing (2026-09-30)
+
+Two changes, one measured and one not. Research behind them is in
+`2026-09-30-pipeline-output-optimization.md`.
+
+**Product repo (`feature/audio-diagnostic-pipeline-task1`, commit `231d69c`,
+pushed).** `select_route` routed the whole 5-20dB SNR band to
+`enhance_gtcrn`; on the n=120 real corpus that was 51 of the 80 noisy
+conditions, so the route measured as harmful was the majority route on noisy
+input. Added `ENHANCEMENT_ENABLED = False` after the discard guard. The SNR
+thresholds and both enhancement routes are left intact -- the finding is that
+the bands are miscalibrated, not that enhancement can never help.
+
+Re-ran the same 120 files x 3 arms (`evidence/en40-postfix-2026-09-30/`):
+
+| arm | noisy n=80 WER | clean n=40 WER |
+|---|---:|---:|
+| `dynamic_routing` | 0.201 -> **0.149** | 0.096 -> 0.095 |
+| `direct_asr_always` | 0.149 (control, unchanged) | 0.095 |
+| `gtcrn_always` | 0.214 (control, unchanged) | 0.101 |
+
+Noisy accuracy 79.9% -> 85.1%; overall n=120 83.41% -> 86.90%.
+`dynamic_routing` now matches `direct_asr_always` on all 120 files to within
+1e-12 and executes 120/120 `direct_asr` (was 66/54). Both controls reproduced
+their prior values exactly, so only routing moved. Also stops paying GTCRN's
+500-820ms p50/p95. Tests 118 -> 124.
+
+**This repo (commit `72614d7`).** `demo/audio_clean.py::_resample_linear`
+decimated with bare `np.interp` and no low-pass, so content above the target
+Nyquist folded into the speech band (12kHz at 44.1kHz -> 4kHz at 16kHz).
+Added `_antialias_lowpass`, a 101-tap windowed-sinc filter, numpy-only
+because scipy is not a declared demo dependency. Product was already correct
+here (`ingestion.py`, `resample_poly`); only the demo's native-WAV path was
+affected, since non-WAV input goes through ffmpeg. Tests 21 -> 24.
+
+**Not measured, deliberately flagged**: the anti-aliasing fix has NO measured
+WER impact. Every file in the en_pilot and n=120 corpora is already 16kHz, so
+`source_rate == target_rate` short-circuits and the fixed path never executes.
+Suppression of the folded image was verified synthetically (-2.2dB -> -57.8dB,
+with the test confirmed to fail against the old implementation), but the
+benefit on real audio is unquantified until a 44.1/48kHz recording is run
+through it. Worth building a corpus arm for.
+
+**Still open** (from the research report, ranked): medical-vocabulary
+`initial_prompt`/`hotwords` (needs the real drug/vitals list -- a wrong prompt
+biases toward hallucinated insertions, the worst error class here); Silero in
+place of the demo's RMS-threshold VAD; `beam_size` 1 vs 5 on the en-40 harness
+(both pipelines currently override faster-whisper's default of 5, on unverified
+evidence); IndicWhisper/IndicConformer for hi/ta, still blocked by the sandbox
+disk-write cap. English-only corpus throughout -- the Hindi/Tamil path remains
+unmeasured.
+
+
 ### Product repo: audio-diagnostic-routing plan, all 7 tasks (2026-09-29)
 
 Built in a separate repo, `/home/sandy/Projects/Product`, branch
