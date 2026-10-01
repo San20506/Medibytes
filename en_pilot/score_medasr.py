@@ -30,7 +30,8 @@ import numpy as np
 
 from en_pilot import config, stats
 from en_pilot.score import ScoreError, read_manifest, word_error_rate
-from en_pilot.transcribe_medasr import DECODER_ID, MODEL_ID
+from en_pilot.transcribe_medasr import DECODER_ID as HARNESS_DECODER_ID
+from en_pilot.transcribe_medasr import MODEL_ID
 from eval.corpus.paths import resolve_data_root
 
 PER_CONDITION_COLUMNS = (
@@ -68,22 +69,33 @@ def _write_csv(path: Path, columns: Sequence[str], rows: Sequence[Mapping[str, A
             writer.writerow({column: row.get(column, "") for column in columns})
 
 
-def _load_transcripts(path: Path, decoder: str) -> dict[tuple[str, str], dict[str, Any]]:
+def _load_transcripts(
+    path: Path, decoder: str, *, failures_are_outcomes: bool = False
+) -> tuple[dict[tuple[str, str], dict[str, Any]], list[str]]:
+    """Load one decoder's rows, and say which cells it failed on.
+
+    For the harness sweep a failure means a broken run and is fatal. For the
+    shipped-pipeline sweep it is the variant's own behaviour - `clean_audio` can
+    refuse a clip outright - so the row is kept with an empty hypothesis, which
+    scores WER 1.0, exactly the transcript the product would have produced.
+    """
+
     if not path.is_file():
         raise ScoreError(f"transcript file is absent: {path}")
     loaded: dict[tuple[str, str], dict[str, Any]] = {}
+    failures: list[str] = []
     for record in read_manifest(path):
         if record.get("decoder") != decoder:
             continue
         if record.get("error"):
-            raise ScoreError(
-                f"{decoder} failed on {record['condition_id']}/{record['backend']}: "
-                f"{record['error']}"
-            )
+            detail = f"{record['condition_id']}/{record['backend']}: {record['error']}"
+            if not failures_are_outcomes:
+                raise ScoreError(f"{decoder} failed on {detail}")
+            failures.append(detail)
         loaded[(record["condition_id"], record["backend"])] = record
     if not loaded:
         raise ScoreError(f"no {decoder} rows in {path}")
-    return loaded
+    return loaded, failures
 
 
 def _score_rows(
@@ -227,16 +239,17 @@ def _bootstrap_block(
         by_sentence_values, expected_groups=len(by_sentence_values)
     )
     decision = stats.decide(by_base["ci95_low"], by_base["ci95_high"])
-    # `stats.decide`'s lower bound is a plausibility guard written for candidates
-    # expected to be neutral or harmful: it rejects any effect whose CI reaches
-    # below -0.02 even when the whole interval is an improvement. Say so, rather
+    # `stats.decide` requires `ci95_low >= -0.02` as well as `ci95_high <= 0`, so an
+    # improvement whose interval reaches past -0.02 is rejected by the lower bound
+    # while the whole interval sits below zero. Record which bound fired, rather
     # than let "reject" be read as "did not help".
     note = ""
     if decision == "reject" and by_base["ci95_high"] <= config.WER_DELTA_CI_HIGH_MAX:
         note = (
-            "improvement larger than the pre-declared plausibility floor "
-            f"({config.WER_DELTA_CI_LOW_MIN}): the whole CI is below zero, so the "
-            "rejection is the rule's lower bound firing, not evidence of harm"
+            f"ci95_low {by_base['ci95_low']:.4f} < {config.WER_DELTA_CI_LOW_MIN} "
+            f"while ci95_high {by_base['ci95_high']:.4f} <= "
+            f"{config.WER_DELTA_CI_HIGH_MAX}: the lower bound fired with the whole "
+            "interval below zero, which is not a finding of harm"
         )
     return {
         "per_base": by_base,
@@ -246,7 +259,9 @@ def _bootstrap_block(
     }
 
 
-def score(data_root: Path, *, denoiser: str, context_decoder: str) -> dict[str, Any]:
+def score(
+    data_root: Path, *, denoiser: str, context_decoder: str, medasr_decoder: str
+) -> dict[str, Any]:
     out_root = data_root / config.OUT_DIR
     results_root = out_root / "results-medasr"
     results_root.mkdir(parents=True, exist_ok=True)
@@ -265,13 +280,16 @@ def score(data_root: Path, *, denoiser: str, context_decoder: str) -> dict[str, 
         sample_id: str(record["fleurs_id"]) for sample_id, record in corpus.items()
     }
 
+    medasr_transcripts, medasr_failures = _load_transcripts(
+        out_root / f"transcripts-{medasr_decoder}.jsonl",
+        medasr_decoder,
+        failures_are_outcomes=True,
+    )
     medasr_rows = _score_rows(
         corpus=corpus,
         conditions=conditions,
-        transcripts=_load_transcripts(
-            out_root / f"transcripts-{DECODER_ID}.jsonl", DECODER_ID
-        ),
-        decoder_label=DECODER_ID,
+        transcripts=medasr_transcripts,
+        decoder_label=medasr_decoder,
         arms=arms,
     )
     whisper_rows = _score_rows(
@@ -279,7 +297,7 @@ def score(data_root: Path, *, denoiser: str, context_decoder: str) -> dict[str, 
         conditions=conditions,
         transcripts=_load_transcripts(
             out_root / f"transcripts-{context_decoder}.jsonl", context_decoder
-        ),
+        )[0],
         decoder_label=context_decoder,
         arms=arms,
         required=False,
@@ -292,13 +310,13 @@ def score(data_root: Path, *, denoiser: str, context_decoder: str) -> dict[str, 
     # averaged over an easier or harder subset than the other.
     coverage = {
         decoder: _conditions_covered(rows, decoder=decoder, arms=arms)
-        for decoder in (DECODER_ID, context_decoder)
+        for decoder in (medasr_decoder, context_decoder)
     }
-    shared_conditions = coverage[DECODER_ID] & coverage[context_decoder]
+    shared_conditions = coverage[medasr_decoder] & coverage[context_decoder]
 
     per_base_rows: list[dict[str, Any]] = []
     variants: dict[str, dict[str, Any]] = {}
-    for decoder in (DECODER_ID, context_decoder):
+    for decoder in (medasr_decoder, context_decoder):
         for arm in arms:
             own = _per_base_noisy(rows, backend=arm, decoder=decoder, only=coverage[decoder])
             shared = _per_base_noisy(rows, backend=arm, decoder=decoder, only=shared_conditions)
@@ -361,6 +379,7 @@ def score(data_root: Path, *, denoiser: str, context_decoder: str) -> dict[str, 
             }
             for key, value in variants.items()
         },
+        "failed_cells": medasr_failures,
         "clean_floor_wer": {
             decoder: (
                 _clean_floor(rows, decoder=decoder)
@@ -370,7 +389,7 @@ def score(data_root: Path, *, denoiser: str, context_decoder: str) -> dict[str, 
                 )
                 else None
             )
-            for decoder in (DECODER_ID, context_decoder)
+            for decoder in (medasr_decoder, context_decoder)
         },
     }
 
@@ -385,14 +404,14 @@ def score(data_root: Path, *, denoiser: str, context_decoder: str) -> dict[str, 
             ),
             sentence_of,
         )
-        for decoder in (DECODER_ID, context_decoder)
+        for decoder in (medasr_decoder, context_decoder)
     }
     # Context: MedASR against the incumbent decoder on identical audio, over the
     # shared conditions only. Reported, never a gate.
     report["decoder_effect"] = {
         arm: _bootstrap_block(
             _paired_delta(
-                variants[f"{DECODER_ID}|{arm}"]["per_base_shared"],
+                variants[f"{medasr_decoder}|{arm}"]["per_base_shared"],
                 variants[f"{context_decoder}|{arm}"]["per_base_shared"],
             ),
             sentence_of,
@@ -422,6 +441,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--denoiser", default="sherpa-gtcrn-simple")
     parser.add_argument(
+        "--decoder",
+        default=HARNESS_DECODER_ID,
+        help="which MedASR sweep to score: the harness chain or the shipped one",
+    )
+    parser.add_argument(
         "--context-decoder",
         default=DEFAULT_CONTEXT_DECODER,
         choices=(config.PRIMARY_DECODER, *config.CONTINUITY_DECODERS),
@@ -432,6 +456,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         resolve_data_root(arguments.data_root),
         denoiser=arguments.denoiser,
         context_decoder=arguments.context_decoder,
+        medasr_decoder=arguments.decoder,
     )
     report = summary["report"]
     print(f"scored {summary['scored_rows']} cells -> {summary['results']}")
