@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from en_pilot import config
+from en_pilot import stats
 from en_pilot.stats import StatsError, bootstrap_paired, decide
 from eval.reporting import cluster_bootstrap
 
@@ -78,3 +79,27 @@ def test_sentence_aggregation_refuses_an_unknown_base():
 
     with pytest.raises(StatsError, match="no sentence identity"):
         aggregate_by_sentence({"sample-001": -0.01}, {})
+
+
+def test_zero_db_conditions_are_not_mistaken_for_clean_floor_rows():
+    """`snr_target_db == 0.0` is the hardest noisy band, not an absent target."""
+    rows = [
+        {"decoder_model": "base", "backend": "none", "speech": "s1",
+         "snr_target_db": 0.0, "wer": 0.4},
+        {"decoder_model": "base", "backend": "none", "speech": "s1",
+         "snr_target_db": 5.0, "wer": 0.2},
+        {"decoder_model": "base", "backend": "cand", "speech": "s1",
+         "snr_target_db": 0.0, "wer": 0.8},
+        {"decoder_model": "base", "backend": "cand", "speech": "s1",
+         "snr_target_db": 5.0, "wer": 0.2},
+        {"decoder_model": "base", "backend": "none", "speech": "s1",
+         "snr_target_db": "", "wer": 0.0},
+    ]
+
+    deltas = stats.per_base_deltas(rows, backend="cand", decoder="base", metric="wer")
+
+    # mean(0.8, 0.2) - mean(0.4, 0.2) = 0.5 - 0.3; dropping the 0 dB pair gives 0.0.
+    assert deltas["s1"] == pytest.approx(0.2)
+    assert stats.per_base_values(
+        rows, backend="none", decoder="base", metric="wer"
+    )["s1"] == pytest.approx(0.3)

@@ -1,0 +1,16 @@
+{
+  "toolkit_source": "https://github.com/k2-fsa/sherpa-onnx",
+  "declared_source_revision": "362ddf2c077e3c04759c93b7a47212a5c9108ca7",
+  "runtime_packages": ["sherpa-onnx==1.13.8", "sherpa-onnx-bin==1.13.8"],
+  "runtime_git_sha_reported_by_installed_binary": "11afbd00",
+  "runtime_source_revision_note": "The frozen catalog source commit dates to 2025; the installed 1.13.8 native binary reports 11afbd00. They are distinct and must not be represented as the same build.",
+  "model_url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/speech-enhancement-models/gtcrn_simple.onnx",
+  "model_sha256": "e77603ac0c23dac3227dd2d7135b3a585cbee2679048aecfa886657d3ae1b534",
+  "toolkit_license": "Apache-2.0",
+  "toolkit_license_url": "https://github.com/k2-fsa/sherpa-onnx/blob/362ddf2c077e3c04759c93b7a47212a5c9108ca7/LICENSE",
+  "model_upstream": "https://github.com/Xiaobin-Rong/gtcrn",
+  "model_license": "MIT",
+  "model_license_url": "https://github.com/Xiaobin-Rong/gtcrn/blob/main/LICENSE",
+  "model_copyright": "Copyright (c) 2024 Rong Xiaobin",
+  "inference": "16 kHz CPU; one native OfflineSpeechDenoiser per input; 1 thread; final 256-sample hop zero-padded and trimmed"
+}

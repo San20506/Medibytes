@@ -1,0 +1,3 @@
+# Python 3.12; install after the frozen demo and eval requirements in this worktree.
+sherpa-onnx==1.13.8
+sherpa-onnx-bin==1.13.8

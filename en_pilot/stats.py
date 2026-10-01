@@ -94,6 +94,20 @@ def decide(ci95_low: float, ci95_high: float) -> str:
     return "reject"
 
 
+def _is_clean_floor(row: Mapping[str, Any]) -> bool:
+    """A clean-floor row carries no SNR target; a noisy one carries a number.
+
+    This used to be `not row["snr_target_db"]`, which is True for the float `0.0`
+    as well as for `""`. Scoring runs in memory, where the field is a float, so
+    every 0 dB condition - the harder half of the matrix, 720 of 1,440 - was
+    silently dropped from every decision, while the CSV written beside it kept
+    them (strings, so `"0.0"` is truthy). Test emptiness, not truthiness.
+    """
+
+    value = row["snr_target_db"]
+    return value is None or (isinstance(value, str) and not value.strip())
+
+
 def _mean(values: Iterable[float]) -> float:
     collected = [float(value) for value in values]
     if not collected:
@@ -114,7 +128,7 @@ def per_base_deltas(
         raise StatsError("per_base_deltas is a candidate-versus-baseline comparison")
     totals: dict[tuple[str, str], list[float]] = defaultdict(list)
     for row in rows:
-        if row["decoder_model"] != decoder or not row["snr_target_db"]:
+        if row["decoder_model"] != decoder or _is_clean_floor(row):
             continue
         if row[metric] == "":
             continue
@@ -158,7 +172,7 @@ def per_base_values(
 ) -> dict[str, float]:
     totals: dict[tuple[str, str], list[float]] = defaultdict(list)
     for row in rows:
-        if row["decoder_model"] != decoder or not row["snr_target_db"]:
+        if row["decoder_model"] != decoder or _is_clean_floor(row):
             continue
         if row[metric] == "":
             continue

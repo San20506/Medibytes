@@ -47,7 +47,10 @@ PER_CONDITION_COLUMNS = (
 
 PER_BASE_COLUMNS = ("speech", "backend", "decoder_model", "n_conditions", "mean_wer")
 
-CONTEXT_DECODER = config.PRIMARY_DECODER
+# The complete reference sweep in this run directory is the `base` tier:
+# `transcripts-small.jsonl` was interrupted and covers a fraction of the grid,
+# which is why `en-pilot-run/results/decision.csv` carries `base` rows only.
+DEFAULT_CONTEXT_DECODER = config.CONTINUITY_DECODERS[0]
 
 
 def _mean(values: Iterable[float]) -> float:
@@ -243,7 +246,7 @@ def _bootstrap_block(
     }
 
 
-def score(data_root: Path, *, denoiser: str) -> dict[str, Any]:
+def score(data_root: Path, *, denoiser: str, context_decoder: str) -> dict[str, Any]:
     out_root = data_root / config.OUT_DIR
     results_root = out_root / "results-medasr"
     results_root.mkdir(parents=True, exist_ok=True)
@@ -275,9 +278,9 @@ def score(data_root: Path, *, denoiser: str) -> dict[str, Any]:
         corpus=corpus,
         conditions=conditions,
         transcripts=_load_transcripts(
-            out_root / f"transcripts-{CONTEXT_DECODER}.jsonl", CONTEXT_DECODER
+            out_root / f"transcripts-{context_decoder}.jsonl", context_decoder
         ),
-        decoder_label=CONTEXT_DECODER,
+        decoder_label=context_decoder,
         arms=arms,
         required=False,
     )
@@ -289,13 +292,13 @@ def score(data_root: Path, *, denoiser: str) -> dict[str, Any]:
     # averaged over an easier or harder subset than the other.
     coverage = {
         decoder: _conditions_covered(rows, decoder=decoder, arms=arms)
-        for decoder in (DECODER_ID, CONTEXT_DECODER)
+        for decoder in (DECODER_ID, context_decoder)
     }
-    shared_conditions = coverage[DECODER_ID] & coverage[CONTEXT_DECODER]
+    shared_conditions = coverage[DECODER_ID] & coverage[context_decoder]
 
     per_base_rows: list[dict[str, Any]] = []
     variants: dict[str, dict[str, Any]] = {}
-    for decoder in (DECODER_ID, CONTEXT_DECODER):
+    for decoder in (DECODER_ID, context_decoder):
         for arm in arms:
             own = _per_base_noisy(rows, backend=arm, decoder=decoder, only=coverage[decoder])
             shared = _per_base_noisy(rows, backend=arm, decoder=decoder, only=shared_conditions)
@@ -367,7 +370,7 @@ def score(data_root: Path, *, denoiser: str) -> dict[str, Any]:
                 )
                 else None
             )
-            for decoder in (DECODER_ID, CONTEXT_DECODER)
+            for decoder in (DECODER_ID, context_decoder)
         },
     }
 
@@ -382,7 +385,7 @@ def score(data_root: Path, *, denoiser: str) -> dict[str, Any]:
             ),
             sentence_of,
         )
-        for decoder in (DECODER_ID, CONTEXT_DECODER)
+        for decoder in (DECODER_ID, context_decoder)
     }
     # Context: MedASR against the incumbent decoder on identical audio, over the
     # shared conditions only. Reported, never a gate.
@@ -390,7 +393,7 @@ def score(data_root: Path, *, denoiser: str) -> dict[str, Any]:
         arm: _bootstrap_block(
             _paired_delta(
                 variants[f"{DECODER_ID}|{arm}"]["per_base_shared"],
-                variants[f"{CONTEXT_DECODER}|{arm}"]["per_base_shared"],
+                variants[f"{context_decoder}|{arm}"]["per_base_shared"],
             ),
             sentence_of,
         )
@@ -418,8 +421,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         default=os.environ.get(config.ENVIRONMENT_NAME, config.DATA_ROOT_DEFAULT),
     )
     parser.add_argument("--denoiser", default="sherpa-gtcrn-simple")
+    parser.add_argument(
+        "--context-decoder",
+        default=DEFAULT_CONTEXT_DECODER,
+        choices=(config.PRIMARY_DECODER, *config.CONTINUITY_DECODERS),
+        help="the Whisper tier to report alongside MedASR",
+    )
     arguments = parser.parse_args(argv)
-    summary = score(resolve_data_root(arguments.data_root), denoiser=arguments.denoiser)
+    summary = score(
+        resolve_data_root(arguments.data_root),
+        denoiser=arguments.denoiser,
+        context_decoder=arguments.context_decoder,
+    )
     report = summary["report"]
     print(f"scored {summary['scored_rows']} cells -> {summary['results']}")
     print("\nnoisy-condition mean WER (lower is better):")
@@ -444,7 +457,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         if block["decision_note"]:
             print(f"             note: {block['decision_note']}")
-    print("\ndecoder effect (medasr minus whisper-small, shared conditions):")
+    print(
+        f"\ndecoder effect (medasr minus whisper-{arguments.context_decoder}, "
+        "shared conditions):"
+    )
     for arm, block in sorted(report["decoder_effect"].items()):
         boot = block["per_base"]
         print(

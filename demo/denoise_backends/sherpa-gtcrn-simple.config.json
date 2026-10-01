@@ -1,0 +1,7 @@
+{
+  "backend": "sherpa-gtcrn-simple",
+  "variant_id": "gtcrn-simple-1.13.8",
+  "model_path": "/home/sandy/.local/share/medibytes-eval/models/sherpa-onnx/gtcrn_simple.onnx",
+  "model_sha256": "e77603ac0c23dac3227dd2d7135b3a585cbee2679048aecfa886657d3ae1b534",
+  "parameters": {"sample_rate": 16000, "provider": "cpu", "num_threads": 1}
+}
