@@ -5,12 +5,14 @@ Demo: faster-whisper tiny/base-int8 if installed else deterministic mock;
 normalize via unicode-range LID + hardcoded Hinglish map; extract via regex
 + drug_list_mini.json + optional spaCy-sm + optional Ollama qwen2.5:0.5b tidy.
 """
+import contextlib
 import json
 from importlib import metadata as importlib_metadata
 
 import os
 import re
 import subprocess
+import wave
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -140,6 +142,30 @@ def _faster_whisper_runtime_version(module):
         return None
 
 
+def _mock_result(clean_wav, job_id, model, exc, reason):
+    """The explicit, labelled mock fallback shared by every real STT backend."""
+    key = job_id if job_id in MOCK_TEXTS else None
+    if key is None:
+        base = os.path.splitext(os.path.basename(clean_wav))[0].lower()
+        for k in MOCK_TEXTS:
+            if k in base or base in k:
+                key = k
+                break
+        key = key or "demo-001"
+    text = MOCK_TEXTS[key]
+    return {"text": text, "segments": _mock_segments(text),
+            "engine": f"mock ({reason}: {type(exc).__name__})",
+            "language": "mix",
+            "stt_provenance": _mock_stt_provenance(model, job_id)}
+
+
+def _transformers_version():
+    try:
+        return importlib_metadata.version("transformers")
+    except importlib_metadata.PackageNotFoundError:
+        return None
+
+
 def _mock_stt_provenance(requested_model, job_id):
     return {
         "job_id": job_id,
@@ -168,6 +194,128 @@ def _model_attribute(model, *names):
 
 
 
+# ---- MedASR (google/medasr) STT backend ----------------------------------
+# A CTC medical-dictation model, not a seq2seq decoder: it emits one unsegmented
+# string with no timestamps and no language id, so the segment list below is a
+# single span with evenly-spaced word times and `word_timestamps` is recorded as
+# False.  Nothing else in the contract changes.
+MEDASR_MODEL_ID = "google/medasr"
+
+# MedASR is a dictation model: it does not emit punctuation characters, it emits
+# the spoken command that produced them (`{period}`), the report section the
+# dictation is in (`[FINDINGS]`), and its own CTC end token.  Left alone, every
+# one of those becomes a spurious word downstream - `{period}` tokenises to
+# "period" and `</s>` to "s" - so the markup is resolved here, once, before any
+# consumer sees the text.  The punctuation map is what the model actually
+# produced on this project's audio; an unrecognised `{directive}` is dropped
+# rather than guessed at, and section headers are dropped because the demo's
+# extractor reads prose, not report structure.
+MEDASR_PUNCTUATION = {
+    "period": ".",
+    "full stop": ".",
+    "comma": ",",
+    "colon": ":",
+    "semicolon": ";",
+    "question mark": "?",
+    "exclamation point": "!",
+    "hyphen": "-",
+    "dash": "-",
+    "slash": "/",
+    "apostrophe": "'",
+    "open paren": "(",
+    "close paren": ")",
+    "open parenthesis": "(",
+    "close parenthesis": ")",
+    "open quote": '"',
+    "close quote": '"',
+    "new paragraph": "\n\n",
+    "new line": "\n",
+    "next line": "\n",
+}
+_MEDASR_DIRECTIVE = re.compile(r"\{\s*([^{}]*?)\s*\}")
+_MEDASR_SECTION = re.compile(r"\[\s*[^\[\]]*\s*\]")
+_MEDASR_SPECIAL = re.compile(r"</?s>|<unk>|<pad>|<epsilon>|<extra_id_\d+>")
+
+
+def medasr_detokenize(text):
+    """Resolve MedASR's dictation markup into ordinary punctuated prose."""
+    out = _MEDASR_SPECIAL.sub(" ", str(text))
+    out = _MEDASR_SECTION.sub(" ", out)
+    out = _MEDASR_DIRECTIVE.sub(
+        lambda m: MEDASR_PUNCTUATION.get(m.group(1).strip().lower(), " "), out
+    )
+    # Unmatched brackets survive a truncated or mis-decoded directive.
+    out = re.sub(r"[\[\]{}]", " ", out)
+    out = re.sub(r"\s+([.,:;?!])", r"\1", out)
+    out = re.sub(r"[ \t]+", " ", out)
+    return out.strip()
+_MEDASR_PIPE = {}
+
+
+def _medasr_pipeline(device=None):
+    """Load `google/medasr` once per process and keep it for later calls."""
+    import torch
+    from transformers import pipeline as hf_pipeline
+
+    if device is None:
+        device = 0 if torch.cuda.is_available() else -1
+    if device not in _MEDASR_PIPE:
+        _MEDASR_PIPE[device] = hf_pipeline(
+            "automatic-speech-recognition", model=MEDASR_MODEL_ID, device=device
+        )
+    return _MEDASR_PIPE[device]
+
+
+def _medasr_segments(text, duration_s):
+    """One span over the whole clip; word times interpolated, never measured."""
+    words = text.split()
+    if not words:
+        return []
+    step = duration_s / len(words) if duration_s > 0 else 0.32
+    return [{
+        "id": 0,
+        "text": text,
+        "start": 0.0,
+        "end": round(duration_s, 2),
+        "lang": "en",
+        "confidence": 0.9,
+        "words": [{"w": w, "s": round(i * step, 2), "e": round((i + 1) * step, 2)}
+                  for i, w in enumerate(words)],
+    }]
+
+
+def transcribe_medasr(clean_wav, job_id="demo-001", device=None):
+    """Transcribe one 16 kHz mono WAV with MedASR, in the shared result shape."""
+    import torch
+
+    pipe = _medasr_pipeline(device)
+    resolved = getattr(pipe, "device", None)
+    device_name = str(resolved) if resolved is not None else "cpu"
+    raw_text = str(pipe(str(clean_wav), chunk_length_s=20, stride_length_s=2)["text"])
+    text = medasr_detokenize(raw_text)
+    with contextlib.closing(wave.open(str(clean_wav), "rb")) as handle:
+        duration_s = handle.getnframes() / float(handle.getframerate())
+    provenance = {
+        "job_id": job_id,
+        "provider": "transformers",
+        "requested_model": "medasr",
+        "actual_model": MEDASR_MODEL_ID,
+        "device": device_name,
+        "compute_type": str(getattr(pipe.model, "dtype", torch.float32)),
+        "word_timestamps": False,
+        "temperature": 0.0,
+        "beam_size": None,
+        "runtime_version": _transformers_version(),
+        "model_hash": None,
+        "model_snapshot": _model_attribute(pipe.model, "name_or_path"),
+        "is_mock": False,
+    }
+    return {"text": text, "raw_text": raw_text,
+            "segments": _medasr_segments(text, duration_s),
+            "engine": f"medasr:{MEDASR_MODEL_ID}@{device_name}",
+            "language": "en", "stt_provenance": provenance}
+
+
 def transcribe(clean_wav, job_id="demo-001", model="small-int8", strict: bool = False):
     """Transcribe with explicit mock fixtures or strict/fallback real STT."""
     if model == "mock":
@@ -175,6 +323,13 @@ def transcribe(clean_wav, job_id="demo-001", model="small-int8", strict: bool = 
         return {"text": MOCK_TEXTS[key], "segments": _mock_segments(MOCK_TEXTS[key]),
                 "engine": "mock (forced --model mock)", "language": "mix",
                 "stt_provenance": _mock_stt_provenance(model, job_id)}
+    if model == "medasr":
+        try:
+            return transcribe_medasr(clean_wav, job_id)
+        except Exception as exc:
+            if strict:
+                raise
+            return _mock_result(clean_wav, job_id, model, exc, "no medasr")
     try:
         import faster_whisper as faster_whisper_module
         from faster_whisper import WhisperModel
@@ -220,19 +375,7 @@ def transcribe(clean_wav, job_id="demo-001", model="small-int8", strict: bool = 
     except Exception as exc:
         if strict:
             raise
-        key = job_id if job_id in MOCK_TEXTS else None
-        if key is None:
-            base = os.path.splitext(os.path.basename(clean_wav))[0].lower()
-            for k in MOCK_TEXTS:
-                if k in base or base in k:
-                    key = k
-                    break
-            key = key or "demo-001"
-        text = MOCK_TEXTS[key]
-        return {"text": text, "segments": _mock_segments(text),
-                "engine": f"mock (no faster-whisper: {type(exc).__name__})",
-                "language": "mix",
-                "stt_provenance": _mock_stt_provenance(model, job_id)}
+        return _mock_result(clean_wav, job_id, model, exc, "no faster-whisper")
 
 
 
