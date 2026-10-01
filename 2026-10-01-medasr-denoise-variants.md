@@ -29,8 +29,10 @@ corpus.** Both are true and the second is the bigger number:
 | **Variant 1 — MedASR + GTCRN** | **0.3816** |
 | **Variant 2 — MedASR, no denoising** | **0.4046** |
 
-The better MedASR variant is 2.4× worse than the plain incumbent. Nothing here
-argues for changing the pipeline default. What it does establish is that the
+The better MedASR variant is 2.4× worse than the plain incumbent **in greedy-CTC
+mode**, which is not a fair decoder comparison — see *The MedASR numbers are a
+floor, not a verdict* below. Nothing here argues for changing the pipeline
+default. What it does establish is that the
 denoising question has a **decoder-specific answer**, which no previous
 measurement in this repo had tested.
 
@@ -103,6 +105,37 @@ such failures. They are counted as failed transcripts in the numbers above rathe
 than dropped, and are listed in `failed_cells` in
 `comparison-pipeline-gtcrn.json`. 3 in 1,440 is small, but it is a failure mode
 variant 2 does not have.
+
+## The MedASR numbers are a floor, not a verdict
+
+Every MedASR figure above was decoded **greedy CTC with no language model**, while
+every Whisper figure comes from an autoregressive decoder with a strong implicit
+LM. That is not apples to apples, and the error pattern shows it. On clean
+speech MedASR produces phonetically plausible non-words where Whisper produces
+the right ones:
+
+| Reference | MedASR (greedy) | Whisper `base` |
+|---|---|---|
+| competitors | "competers" / "compter" | competitors |
+| dignity solemnity | "Dignaties Solimity" | dignity, solemn nitty |
+| festivals | "fsibles" | festivals |
+| jokes about the Holocaust or Nazis | "juks about theHallocost or notlease" | jokes about the Holocaust or Nazis |
+| hostage by hijacking their bus in Manila | "hosage by high jaecting therebus mannella" | hostage by hijacking their bus in Manila |
+
+These are the signature of a CTC acoustic model with no linguistic prior to snap
+hypotheses onto real words. MedASR ships `lm_6.kenlm` (704 MB) for exactly this,
+and its own `notebook.ipynb` builds a `ctc_with_lm` pipeline over it
+(`beam_width=8`, token-level LM via a `▁`/`#` vocab remap, forked pyctcdecode).
+**That decode was not run here.** The model card documents greedy decoding for
+its own WER table, which is why greedy was the starting point, but quoting a
+decoder comparison from it understates MedASR.
+
+Re-running under LM fusion is pending and re-tests the denoising result too: if
+the gain comes from a decoder with no linguistic prior being helped by cleaner
+audio, it should shrink once the LM is on.
+
+Size is not the explanation: MedASR is 421 MB of weights (~105M params fp32),
+between Whisper `base` (74M) and `small` (244M).
 
 ## This is not a test of MedASR's medical accuracy
 
@@ -225,6 +258,9 @@ shipped `lm_6.kenlm` shallow-fusion LM was **not** used.
    above uses. Completing `small` is one resume-safe command — `python -m
    en_pilot.transcribe --decoder small --streams 4` — but CTranslate2 cannot load
    CUDA on this host, so it is roughly a 6-hour CPU job.
-4. **The adoption rule was not re-derived.** `reject` on MedASR + GTCRN is
+4. **Greedy CTC, no LM.** See above; the MedASR-vs-Whisper gap is an upper
+   bound on MedASR's disadvantage, and the denoising delta is unverified under
+   LM fusion.
+5. **The adoption rule was not re-derived.** `reject` on MedASR + GTCRN is
    `ci95_low = -0.0396 < -0.02` firing with the whole interval below zero, not a
    finding of harm.
