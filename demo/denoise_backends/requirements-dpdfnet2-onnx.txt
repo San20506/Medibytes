@@ -1,0 +1,3 @@
+# Install after eval/requirements-eval.txt and demo/requirements-demo.txt in this arm's Python 3.12 venv.
+dpdfnet==0.6.0
+onnxruntime==1.30.0

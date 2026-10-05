@@ -122,7 +122,9 @@ def fill_template(entities_json, transcript_json, template_id="er_discharge"):
             for d in drugs:
                 row = t.add_row().cells
                 row[0].text = str(d["name"])
-                row[1].text = f"{d['dose']} {d['unit']}"
+                # a doseless drug is a real row with an empty dose, not "None None"
+                row[1].text = (f"{d['dose']} {d['unit']}"
+                               if d.get("dose") is not None else "— not dictated")
                 row[2].text = str(d["frequency"])
                 row[3].text = str(d["duration"])
                 row[4].text = f"{d['color']} {d['confidence']}"

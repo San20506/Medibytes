@@ -6,6 +6,67 @@ detail (OpenSpec change, evidence directory, or commit).
 
 ## Unreleased
 
+### Clinical extraction fixes, MedASR LM fusion, denoiser comparison (2026-10-05)
+
+Full detail in `2026-10-05-best-configuration-spec.md`, which also consolidates
+the per-session writeups from 2026-09-29 through 2026-10-05. Those files were
+removed from the working tree in this commit and remain in git history; the
+entries below in this changelog still describe what each concluded.
+
+**Extractor (`demo/stt_extract.py`).** The 2026-10-01 component eval measured the
+extractor at 10/26 vitals, 2/11 drugs and 1/2 allergy polarity against a perfect
+transcript, and named four defects. All four fixed; the ceiling is now 41/41.
+
+The safety-critical one: asserted allergies were unreachable by construction. The
+allergy block ran under `if neg:` and matched only `allergy to <drug>`, so clip
+005 -- an acute amoxicillin reaction -- produced a record naming only a *negated
+penicillin*. Added the other word order plus `allergic to`, and moved polarity to
+`_negated_before`, which scopes negation between the last contrast marker and the
+substance rather than over the whole sentence. A worse variant of the same bug
+was found while fixing it: "known penicillin allergy, no other drug allergies"
+also read as a denial.
+
+Also: doseless drugs are now captured (9 of 11 gold drugs carry no dose);
+respiratory rate and glucose gained patterns; vital cues tolerate copulas,
+hedges and stutters; `numwords_to_digits` handles spoken decimals and hundreds.
+`demo/tests/test_extract_rules.py` adds 54 cases written for the test rather than
+copied from the eval corpus.
+
+**MedASR LM fusion.** The model's shipped `lm_6.kenlm` beam-search decode
+(`ctc_with_lm`, beam 8) runs on upstream PyPI `kenlm` + `pyctcdecode`; the
+third-party fork the model card's notebook installs is not required. Validated on
+the model's own radiology sample: greedy WER 0.0122 -> **0.0000**. On the clinical
+corpus it recovers one drug name (36/41 -> 37/41). It is **not** wired into
+`demo/` -- `--model medasr` still decodes greedy.
+
+Correction to the 2026-10-01 denoise writeup: it predicted LM fusion would narrow
+the MedASR-vs-Whisper gap. It does not. On 40 clean FLEURS bases the paired delta
+is +0.0040, 95% CI [-0.0208, +0.0350], p=0.845 -- no effect. `lm_6.kenlm` is a
+medical-dictation LM; it helps where the domain matches and nowhere else.
+
+**Denoising on clinical audio: all arms lose to `none`.** Measured end to end on
+the 7-clip dataset through the shipped chain, MedASR greedy:
+
+| denoiser | clinical facts |
+|---|---:|
+| `none` | **36/41** |
+| `dpdfnet2-onnx` v0.6.0 | 35/41 |
+| `sherpa-gtcrn-simple` | 33/41 |
+
+All 7 clips are clean, so enhancement has no noise to remove and only perturbs
+intact speech -- GTCRN destroyed clip 005's amoxicillin allergy. This does not
+generalise to noisy input, where the DEMAND matrix shows both helping MedASR.
+The default stays `none`; an SNR gate is the right design and does not exist yet.
+
+`demo/denoise_backends/dpdfnet2_onnx.py` ported from the `eval-dpdfnet` worktree
+so the better of the two candidates is runnable here. Needs `dpdfnet==0.6.0`.
+
+**Best measured configuration: 37/41 clinical facts (90.2%), 95% CI
+[77.5%, 96.1%]** -- 34/34 numbers, 26/26 vitals, 2/2 allergy polarity,
+**8/11 drug names**. All four remaining misses are drug names the decoder spelled
+wrong. n=7, English, clean only, agent-authored gold; no accuracy target can be
+demonstrated or refused at this sample size.
+
 ### Pipeline output optimization: routing fix + Stage-1 anti-aliasing (2026-09-30)
 
 Two changes, one measured and one not. Research behind them is in

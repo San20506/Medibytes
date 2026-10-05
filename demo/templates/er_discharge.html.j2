@@ -30,7 +30,7 @@ th,td{border:1px solid #ccc;padding:6px;text-align:left;font-size:14px}
 <table><tr><th>Name</th><th>Dose</th><th>Freq</th><th>Days</th><th>Conf</th><th>Proof</th></tr>
 {% for d in drugs %}<tr>
 <td>{{ d.name }}{% if d.note %}<br><small>{{ d.note }}</small>{% endif %}</td>
-<td>{{ d.dose }} {{ d.unit }}</td><td>{{ d.frequency }}</td><td>{{ d.duration }}</td>
+<td>{% if d.dose is not none %}{{ d.dose }} {{ d.unit }}{% else %}&mdash; not dictated{% endif %}</td><td>{{ d.frequency }}</td><td>{{ d.duration }}</td>
 <td><span class="badge {{ d.color }}">{{ d.color }} {{ d.confidence }}</span></td>
 <td class="proof">{{ d.proof }}</td></tr>{% endfor %}</table>
 {% else %}<div>NIL — no drug heard <span class="badge RED">RED MISSING</span></div>{% endif %}

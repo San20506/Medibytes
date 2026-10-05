@@ -103,7 +103,8 @@ def _entity_cards(ej):
             st.markdown(
                 f"<div style='border-left:6px solid {COLOR.get(c, '#999')};padding:8px;margin:6px 0'>"
                 f"<b>{grp[:-1]} {c}</b>{neg} - {item.get('name') or item.get('text')} "
-                f"{item.get('dose', '')} {item.get('unit', '')} {item.get('frequency', '')} "
+                f"{item.get('dose') if item.get('dose') is not None else ''} "
+                f"{item.get('unit') or ''} {item.get('frequency', '')} "
                 f"{item.get('duration', '')} ({item.get('confidence', '?')})<br>"
                 f"<i>Heard:</i> {item.get('source_sentence', '')}"
                 f"{('<br><small>' + item.get('note', '') + '</small>') if item.get('note') else ''}</div>",

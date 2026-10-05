@@ -1,0 +1,12 @@
+{
+  "source": "https://github.com/ceva-ip/DPDFNet",
+  "source_commit": "de503b39ddfb16023b9d599b05ca872877506047",
+  "package": "dpdfnet==0.6.0",
+  "license": "Apache-2.0",
+  "model_url": "https://huggingface.co/Ceva-IP/DPDFNet/resolve/dd6818d00f50c836fed43a6243ebe49116de5964/onnx/dpdfnet2.onnx",
+  "model_revision": "dd6818d00f50c836fed43a6243ebe49116de5964",
+  "model_sha256": "4f0ee28935b4a32abecc717d745416976565834d839601acf43031094b4dc94c",
+  "model_bytes": 10178747,
+  "runtime": "Python 3.12, dpdfnet 0.6.0, onnxruntime 1.30.0 CPUExecutionProvider",
+  "execution": "local 16 kHz offline enhancement, package-default attn_limit_db=None, one fresh ONNX session/RNN state per sample; final window padded and output fit to input length"
+}

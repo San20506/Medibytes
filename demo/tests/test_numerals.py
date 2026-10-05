@@ -77,5 +77,11 @@ def test_live_two_drugs_freq_and_vitals():
 
 
 def test_live_allergy_candidate():
+    """A misheard allergy is canonicalised, the way a misheard drug always was.
+
+    This used to assert the raw spelling "moxasillin". An allergy table that
+    says "moxasillin" does not protect anyone from amoxicillin, so the candidate
+    is now resolved through the same alias map the drug rows use.
+    """
     ent, _ = _run("They don't have any known allergy to a moxasillin.")
-    assert any(a["text"] == "moxasillin" and a["negated"] for a in ent["allergies"])
+    assert any(a["text"] == "amoxicillin" and a["negated"] for a in ent["allergies"])
