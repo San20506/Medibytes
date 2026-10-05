@@ -6,6 +6,48 @@ detail (OpenSpec change, evidence directory, or commit).
 
 ## Unreleased
 
+### Second pass also recovers vitals, keyed on the reading not the wording (2026-10-05)
+
+The second decoder pass contributed drug rows only, because de-duplicating
+vitals on the raw span failed: the decoders word the same reading differently
+- "pulse is 102" against "pulse 102" - so every agreed vital arrived twice and
+the union produced **44 spurious spans against 12**.
+
+Keying on `(kind, numbers)` instead recognises those as one reading. Same gain,
+a fraction of the noise:
+
+| vitals merge | facts | vitals | spurious vitals |
+|---|---|---|---|
+| none (drugs only) | 105/119 = 88.2% | 85/95 | 12 |
+| by raw span text | 107/119 = 89.9% | 87/95 | **44** |
+| **by (kind, numbers)** | **107/119 = 89.9%** | **87/95** | **17** |
+
+A span the classifier cannot type is dropped rather than guessed at, and an
+added vital is capped at 0.70 confidence and labelled `heard only by <decoder>`,
+as drug rows already were.
+
+**Current measured position** (`medasr` primary + `small-int8` second pass):
+
+| | in-sample (41) | **held-out (119)** |
+|---|---|---|
+| facts | **39/41 = 95.1%** | **107/119 = 89.9%** CI [83.2, 94.1] |
+| vitals | 26/26 | 87/95 |
+| drugs | 9/11 | 20/24 |
+| spurious | drugs 0, vitals 2 | drugs 0, vitals 17 |
+
+**The in-sample 95.1% must not be quoted as the product figure.** The same
+configuration scores 89.9% on the 23 held-out clips, and the whole reason that
+held-out set exists is that in-sample numbers on this corpus have been
+optimistic before. 89.9% is the number to stand behind.
+
+A third arm was measured and rejected: adding `medasr-lm` to the union gives
+39/41 in-sample but **105/119 -> 105/119 held-out, zero gain**, for a 704 MB
+language model and a third decode.
+
+The extraction ceiling is unchanged at 41/41 in-sample and 119/119 held-out.
+334 tests pass.
+
+
 ### Second decoder pass for drug names (2026-10-05)
 
 The decoders mishear different words, and that disagreement is worth more than

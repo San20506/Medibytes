@@ -1604,7 +1604,7 @@ def _run_term_validation(ent, validate_terms, ollama_model):
 
 
 def _union_drugs(primary, second_text, second_model, segments):
-    """Add drug rows a second decoder heard and the primary one missed.
+    """Add drug and vital rows a second decoder heard and the primary missed.
 
     The decoders fail on different words. Measured on the 23 held-out clips,
     `medasr` recovers 14 of 24 gold drugs and `small-int8` 15, but their union
@@ -1643,6 +1643,32 @@ def _union_drugs(primary, second_text, second_model, segments):
     if added:
         primary["drug_second_pass"] = {"model": second_model,
                                        "added": [r["name"] for r in added]}
+
+    # Vitals too, but keyed on what the reading *is* rather than how it was
+    # worded. De-duplicating on the raw span failed because the decoders write
+    # the same reading differently - "pulse is 102" against "pulse 102" - so
+    # every agreed vital arrived twice and the union produced 44 spurious
+    # spans against 12. Keying on (kind, numbers) recognises them as one
+    # reading: same +2 facts, 17 spurious instead of 44.
+    def _key(span):
+        return (_vital_span_kind(span), tuple(re.findall(r"\d+(?:\.\d+)?", span)))
+
+    seen = {_key(v.get("text", "")) for v in primary.get("vitals", [])}
+    v_added = []
+    for row in extra.get("vitals", []):
+        k = _key(row.get("text", ""))
+        if k[0] is None or k in seen:
+            continue
+        seen.add(k)
+        row = dict(row)
+        row["confidence"] = min(float(row.get("confidence", 0.87)), 0.70)
+        row["note"] = (f"{row.get('note', '')} | heard only by {second_model}, "
+                       f"not by the primary decoder").strip(" |")
+        row["second_pass"] = second_model
+        v_added.append(row)
+    primary["vitals"] = list(primary.get("vitals", [])) + v_added
+    if v_added:
+        primary.setdefault("drug_second_pass", {})["vitals_added"] = len(v_added)
     return primary
 
 

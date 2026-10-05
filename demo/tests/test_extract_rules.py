@@ -631,3 +631,33 @@ def test_the_second_pass_never_duplicates_or_downgrades_an_agreed_drug():
     assert merged["drugs"][0]["color"] == before["color"]
     assert merged["drugs"][0]["confidence"] == before["confidence"]
     assert "drug_second_pass" not in merged
+
+
+def test_the_second_pass_adds_a_vital_keyed_on_the_reading_not_the_wording():
+    # The decoders word the same reading differently - "pulse is 102" against
+    # "pulse 102" - so de-duplicating on the raw span counted every agreed
+    # vital twice and produced 44 spurious spans against 12. Keying on
+    # (kind, numbers) recognises them as one reading.
+    from stt_extract import _union_drugs
+    primary = _ents("Pulse is 102 per minute.")
+    merged = _union_drugs(primary, "Pulse 102.", "small-int8", [])
+    assert len(merged["vitals"]) == 1, merged["vitals"]
+
+    # ...while a genuinely new reading the primary missed is added.
+    primary = _ents("Pulse is 102 per minute.")
+    merged = _union_drugs(primary, "Pulse 102. Temperature 101 degrees.",
+                          "small-int8", [])
+    kinds = {v["text"] for v in merged["vitals"]}
+    assert len(merged["vitals"]) == 2, kinds
+    added = [v for v in merged["vitals"] if v.get("second_pass")]
+    assert len(added) == 1 and added[0]["confidence"] <= 0.70
+    assert "heard only by small-int8" in added[0]["note"]
+
+
+def test_a_second_pass_span_of_no_recognised_kind_is_not_added():
+    # Without a kind the merge cannot tell one reading from another, so an
+    # unclassifiable span is dropped rather than guessed at.
+    from stt_extract import _union_drugs
+    primary = _ents("Pulse is 102 per minute.")
+    merged = _union_drugs(primary, "He walked 40 metres.", "small-int8", [])
+    assert len(merged["vitals"]) == 1
