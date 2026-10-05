@@ -18,31 +18,35 @@ UNITS_OK = {"mg", "mcg", "g", "ml", "U"}
 
 
 def _regex_vitals_slots(regex_ent):
-    """Which vitals slots regex already filled with digits (gap-fill gate for LLM)."""
-    import re as _re
+    """Which vitals slots regex already filled with digits (gap-fill gate for LLM).
+
+    Classification is delegated to coords.vitals_box_kind so this gate and the
+    chart agree exactly: a slot counted filled here must be the slot coords
+    charts, or the LLM overwrites a charted vital (too narrow) or declines to
+    fill a genuinely empty one (too wide).
+    """
+    from coords import vitals_box_kind
     has = {"bp": False, "temp": False, "spo2": False}
     for v in regex_ent.get("vitals", []) or []:
-        t = str(v.get("text", ""))
-        if _re.search(r"\d+\s*(?:by|/|over|of)\s*\d+", t):
-            has["bp"] = True
-        if _re.search(r"degree|temp|fahrenheit|°", t, _re.I):
-            has["temp"] = True
-        if _re.search(r"spo2|o2|%|oxygen", t, _re.I):
-            has["spo2"] = True
+        kind = vitals_box_kind(v)
+        if kind in has:
+            has[kind] = True
     return has
 
 
 def _llm_vitals_kind(item):
-    """Classify an LLM vitals item into bp/temp/spo2/other for gap-fill gating."""
+    """Classify an LLM vitals item into bp/temp/spo2/other for gap-fill gating.
+
+    LLM-built items carry an explicit "kind" (they have no cue text and no
+    source sentence, so a cue check would read them all as "other" and let
+    them past the gate). Anything else goes through the shared classifier.
+    """
     import re as _re
+    from coords import vitals_box_kind
     t = str(item.get("text", item.get("name", "")))
-    if _re.search(r"\d+\s*(?:by|/|over|of)\s*\d+|^BP\b", t, _re.I):
+    if _re.search(r"^BP\b", t, _re.I):
         return "bp"
-    if _re.search(r"degree|temp|fahrenheit|°", t, _re.I):
-        return "temp"
-    if _re.search(r"spo2|o2|%|oxygen", t, _re.I):
-        return "spo2"
-    return "other"
+    return vitals_box_kind(item) or "other"
 
 
 def merge_primary(regex_ent, llm_ent, model="llama3.2:3b"):
@@ -243,7 +247,8 @@ def extract_llm_primary(transcript_text, normalized_en, segments,
         if v.get("sys") and v.get("dia"):
             ds, dd = _digits(v["sys"]), _digits(v["dia"])
             if ds and dd and ds[0] in _full and dd[0] in _full:
-                vitals.append({"text": f"BP {v['sys']}/{v['dia']}", "confidence": 0.88,
+                vitals.append({"text": f"BP {v['sys']}/{v['dia']}", "kind": "bp",
+                               "confidence": 0.88,
                                "color": "YELLOW", "source_sentence": ""})
                 structured_vitals["sys"] = str(v["sys"])
                 structured_vitals["dia"] = str(v["dia"])
@@ -251,7 +256,10 @@ def extract_llm_primary(transcript_text, normalized_en, segments,
             if v.get(k):
                 dk = _digits(v[k])
                 if dk and dk[0] in _full:
-                    vitals.append({"text": str(v[k]), "confidence": 0.87, "color": "YELLOW",
+                    # "kind" is provenance: the LLM reported this under the
+                    # temp/spo2 key, and "96%" carries no cue of its own.
+                    vitals.append({"text": str(v[k]), "kind": k,
+                                   "confidence": 0.87, "color": "YELLOW",
                                    "source_sentence": ""})
                     structured_vitals[k] = str(v[k])
         allergies = [{"text": str(a), "negated": True, "confidence": 0.9,

@@ -13,7 +13,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pytest
 
-from stt_extract import extract_entities, normalize_text, numwords_to_digits
+from stt_extract import (box_value_plausible, extract_entities, normalize_text,
+                         numwords_to_digits)
 
 
 def _ents(text):
@@ -376,6 +377,76 @@ def test_a_drug_switch_stops_only_the_drug_being_switched_from(sentence, stopped
     assert rows[active]["negated"] is False
 
 
+def test_multiword_doseless_drugs_are_recorded_red():
+    """Formulary gap from unseen handovers: saline / ipratropium / valproate."""
+    rows = {r["name"]: r for r in _ents(
+        "Keep the line open with normal saline. "
+        "Continue ipratropium bromide as ordered. "
+        "She remains on sodium valproate."
+    )["drugs"]}
+    assert set(rows) == {"normal saline", "ipratropium bromide", "sodium valproate"}
+    assert all(r["dose"] is None and r["color"] == "RED" for r in rows.values())
+
+
+def test_multiword_alias_resolves_to_canonical():
+    # These used to come from three names hand-added to the formulary because
+    # specific held-out clips named them. The formulary is no longer the route:
+    # the doseless path consults the national pack, so the same drugs resolve
+    # without anyone having to anticipate them. The charted name is now the
+    # pack's, which is why the bare alias charts as `ipratropium`.
+    rows = _ents("Nebulise with ipratropium now.")["drugs"]
+    assert [r["name"] for r in rows] == ["ipratropium"]
+    rows = _ents("Continue ipratropium bromide as ordered.")["drugs"]
+    assert [r["name"] for r in rows] == ["ipratropium bromide"]
+
+
+def test_a_lab_level_is_not_a_prescription():
+    # "Valproate levels were sent this morning" asks for a blood level. An
+    # earlier version of this test asserted it produced a valproate order,
+    # which would put a drug nobody prescribed on a discharge note.
+    assert _ents("Valproate levels were sent this morning.")["drugs"] == []
+    assert _ents("Blood samples sent to check creatinine, urea, sodium "
+                 "and potassium levels.")["drugs"] == []
+    # ...while a real order for the same substance still records.
+    rows = _ents("Give calcium 500 mg BID.")["drugs"]
+    assert [r["name"] for r in rows] == ["calcium"]
+
+
+def test_physiologically_absurd_vitals_go_red_not_yellow():
+    """ASR garbage (pulse 940, BP 400/65) must not chart at YELLOW."""
+    rows = _ents("Pulse is 940 per minute. Blood pressure is 400 over 65.")["vitals"]
+    assert rows, "expected vitals spans"
+    assert all(r["color"] == "RED" for r in rows), rows
+    assert all("implausible" in (r.get("note") or "") for r in rows), rows
+
+
+def test_sane_vitals_stay_yellow():
+    rows = _ents("Pulse is 94 per minute. Blood pressure is 118 over 72.")["vitals"]
+    assert rows and all(r["color"] == "YELLOW" for r in rows), rows
+
+
+def test_spo2_percent_word_reaches_the_chart_box():
+    from coords import resolve_slots
+    text = "Oxygen saturation is 98 percent on room air."
+    ents = _ents(text)
+    ents["job_id"] = "t"
+    out = resolve_slots(ents, {"job_id": "t", "text": text, "segments": [],
+                               "normalized_en": text})
+    spo2 = [s for s in out["slots"] if s["key"] == "vitals_spo2"]
+    assert spo2 and spo2[0]["text"] != "NIL", spo2
+
+
+def test_an_implausible_box_is_red():
+    from coords import resolve_slots
+    text = "Pulse is 940 per minute."
+    ents = _ents(text)
+    assert any(v["color"] == "RED" for v in ents["vitals"])
+    ents["job_id"] = "t"
+    out = resolve_slots(ents, {"job_id": "t", "text": text, "segments": [],
+                               "normalized_en": text})
+    _ = out  # boxes only carry bp/temp/spo2; pulse RED lives on the entity
+
+
 def test_a_stopped_drug_outranks_a_denied_symptom_for_the_last_slot():
     # The premium renderer caps the DENIED floats at three. A stopped
     # medication must not be the one that falls off the end.
@@ -387,3 +458,126 @@ def test_a_stopped_drug_outranks_a_denied_symptom_for_the_last_slot():
     out = resolve_slots(ents, {"job_id": "t", "text": text, "segments": [],
                                "normalized_en": text})
     assert any("metformin" in d["text"] for d in out["denied"]), out["denied"]
+
+
+# --- unit-aware temperature plausibility -------------------------------------
+# "38 degrees Celsius" is a textbook fever. It charted RED as "physiologically
+# implausible" because the only temperature range was Fahrenheit's 90-110, and
+# the span kind matched the word `celsius` into it.
+
+@pytest.mark.parametrize("sentence,reading,color", [
+    ("Temperature is 38 degrees Celsius.", "38", "YELLOW"),
+    ("Temp 38 degrees C.", "38", "YELLOW"),
+    ("Temperature 38.5 degrees celsius.", "38.5", "YELLOW"),
+    # Celsius garbage is still garbage: the range moved, it did not vanish.
+    ("Temp 50 degrees Celsius.", "50", "RED"),
+    ("Temperature is 20 degrees Celsius.", "20", "RED"),
+    # Fahrenheit is untouched, including the unmarked case: an unmarked number
+    # is read on the scale this project's charts are written in.
+    ("Temp 160 degrees Fahrenheit.", "160", "RED"),
+    ("98.6 degrees Fahrenheit.", "98.6", "YELLOW"),
+    ("Temperature 101 degrees F.", "101", "YELLOW"),
+    ("Temp 38 degrees.", "38", "RED"),
+])
+def test_temperature_plausibility_is_unit_aware(sentence, reading, color):
+    rows = _ents(sentence)["vitals"]
+    assert len(rows) == 1, rows
+    assert reading in rows[0]["text"], rows
+    assert rows[0]["color"] == color, rows
+
+
+def test_celsius_fever_carries_no_implausibility_note():
+    row = _ents("Temperature is 38 degrees Celsius.")["vitals"][0]
+    assert "implausible" not in (row.get("note") or "")
+
+
+# --- multi-word drug names ----------------------------------------------------
+# The name group was one token, so "folic acid 5 mg" offered `acid`, which
+# resolves to nothing and dropped the row, and "clavulanic acid 125 mg" charted
+# as a doseless row saying "no dose dictated" - false about the recording.
+
+def test_two_word_drug_name_in_the_reference_is_dosed():
+    rows = _ents("Give folic acid 5 mg OD.")["drugs"]
+    assert len(rows) == 1, rows
+    row = rows[0]
+    assert (row["name"], row["dose"], row["unit"], row["frequency"]) == (
+        "folic acid", 5.0, "mg", "OD")
+    # Reached the chart through the national pack rather than this pipeline's
+    # own curated list, so a human still glances at it.
+    assert row["color"] == "YELLOW"
+    assert "no dose dictated" not in (row.get("note") or "")
+
+
+def test_two_word_drug_name_in_the_mini_list_is_dosed_green():
+    rows = _ents("Give clavulanic acid 125 mg BD.")["drugs"]
+    assert len(rows) == 1, rows
+    row = rows[0]
+    assert (row["name"], row["dose"], row["unit"], row["frequency"],
+            row["color"]) == ("clavulanic acid", 125.0, "mg", "BD", "GREEN")
+
+
+def test_multiword_name_wins_over_its_last_word_and_kills_the_fuzzy_phantom():
+    # `saline` alone fuzzed to `insulin` and charted "insulin 500 ml" YELLOW.
+    rows = _ents("Give normal saline 500 ml.")["drugs"]
+    assert [r["name"] for r in rows] == ["normal saline"], rows
+    assert (rows[0]["dose"], rows[0]["unit"], rows[0]["color"]) == (
+        500.0, "ml", "GREEN")
+
+
+def test_longest_resolvable_name_wins():
+    # YELLOW rather than GREEN: the name now reaches the chart through the
+    # national pack rather than this project's own formulary, and a
+    # reference-only row carries no curated dose ceiling, so it is never
+    # cleared automatically.
+    rows = _ents("Start sodium valproate 500 mg BD.")["drugs"]
+    assert [(r["name"], r["dose"], r["color"]) for r in rows] == [
+        ("sodium valproate", 500.0, "YELLOW")]
+
+
+def test_a_longer_match_cannot_invent_a_drug():
+    # The words before a dose are ordinary English far more often than they are
+    # half of a medicine's name; a greedy name group would chart them.
+    assert _ents("Dose was 200 mg.")["drugs"] == []
+    assert _ents("The reading was 120 mg per decilitre.")["drugs"] == []
+
+
+def test_conjoined_drug_does_not_absorb_the_neighbours_dose():
+    rows = {r["name"]: r for r in _ents("Give paracetamol and ibuprofen 400 mg.")["drugs"]}
+    assert (rows["ibuprofen"]["dose"], rows["ibuprofen"]["color"]) == (400.0, "GREEN")
+    assert (rows["paracetamol"]["dose"], rows["paracetamol"]["color"]) == (None, "RED")
+
+
+@pytest.mark.parametrize("sentence", [
+    "Give amoxicillin and clavulanic acid 625 mg BD.",
+    "Give amoxicillin clavulanic acid 625 mg BD.",
+    "Give amoxicillin-clavulanic acid 625 mg.",
+    "Give amoxicillin/clavulanic acid 625 mg.",
+    "Give amoxicillin, clavulanic acid 625 mg.",
+])
+def test_combination_total_is_not_charted_as_one_components_dose(sentence):
+    # 625 mg is co-amoxiclav's total strength, not clavulanic acid's dose. The
+    # multi-word name is what makes this sentence produce a dosed row at all,
+    # so it must not produce a GREEN one.
+    rows = {r["name"]: r for r in _ents(sentence)["drugs"]}
+    assert rows["clavulanic acid"]["dose"] == 625.0
+    assert rows["clavulanic acid"]["color"] == "RED"
+    assert "combination" in rows["clavulanic acid"]["note"]
+    assert rows["amoxicillin"]["color"] == "RED"
+
+
+def test_a_prohibited_multiword_drug_is_still_negated():
+    rows = _ents("Do not give folic acid 5 mg.")["drugs"]
+    assert len(rows) == 1, rows
+    assert (rows[0]["name"], rows[0]["dose"], rows[0]["unit"]) == (
+        "folic acid", 5.0, "mg")
+    assert rows[0]["negated"] is True
+    assert rows[0]["color"] == "RED"
+
+
+def test_a_celsius_temp_box_is_not_red_on_the_chart():
+    # The box keeps the unit it was cut from, so the coords renderer gets the
+    # same scale test the sentence-level check uses.
+    assert box_value_plausible("temp", "38 degrees Celsius") is True
+    assert box_value_plausible("temp", "50 degrees Celsius") is False
+    assert box_value_plausible("temp", "160 degrees Fahrenheit") is False
+    assert box_value_plausible("temp", "98.6 degrees") is True

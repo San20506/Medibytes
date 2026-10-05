@@ -185,7 +185,7 @@ def main():
     ap.add_argument("--key", default=None)
     ap.add_argument("--use-llm", action="store_true", help="force LLM-primary extraction (fallback regex)")
     ap.add_argument("--no-llm", action="store_true", help="regex only, skip LLM")
-    ap.add_argument("--model", default="small-int8", help="tiny-int8 (fast) | base-int8 (better) | small-int8 (default, best CPU, required for usable Hindi/Tamil/code-mix) | medasr (google/medasr, English-only medical CTC) | mock (instant)")
+    ap.add_argument("--model", default="small-int8", help="tiny-int8 (fast) | base-int8 (better) | small-int8 (default, best CPU, required for usable Hindi/Tamil/code-mix) | medasr (google/medasr greedy, English-only medical CTC) | medasr-lm (medasr + kenlm beam search, English-only, best drug names) | medium | large-v3 (GPU if available, else CPU) | mock (instant)")
     ap.add_argument("--template", default="er_discharge", help="er_discharge | none")
     ap.add_argument(
         "--denoiser",

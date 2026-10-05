@@ -245,5 +245,11 @@
       "clavulanate",
       "clavulanic"
     ]
+  },
+  {
+    "name": "normal saline",
+    "aliases": [
+      "normal saline"
+    ]
   }
 ]

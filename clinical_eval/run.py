@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 import time
 from pathlib import Path
 from typing import Any, Sequence
@@ -27,7 +28,15 @@ from typing import Any, Sequence
 from clinical_eval.prepare import DATA_ROOT_DEFAULT, corpus_root, load_manifest
 
 DENOISERS = ("none", "sherpa-gtcrn-simple")
+# The default sweep. `demo/server.py` falls back to this for `/api/eval/run`,
+# so anything added here is paid for by every future full run.
 DECODERS = ("small-int8", "base-int8", "medasr")
+# Accepted but opt-in: `medasr-lm` pulls a 704 MB kenlm language model on top
+# of the MedASR weights and beam-searches instead of taking the argmax, so it
+# is minutes-per-clip slower. Ask for it explicitly: `--decoders medasr-lm`.
+OPTIONAL_DECODERS = ("medasr-lm",)
+# `mock` is accepted so a plumbing run needs no weights at all.
+ACCEPTED_DECODERS = DECODERS + OPTIONAL_DECODERS + ("tiny-int8", "medium", "large-v3", "mock")
 GTCRN = {
     "variant_id": "gtcrn-simple-1.13.8",
     "model_path": "/home/sandy/.local/share/medibytes-eval/models/sherpa-onnx/gtcrn_simple.onnx",
@@ -61,7 +70,21 @@ def _clean(source: Path, destination: Path, denoiser: str) -> dict[str, Any]:
     }
 
 
+def _ensure_demo_on_path() -> None:
+    """`demo/` itself, not just the repo root, must be importable.
+
+    `demo.stt_extract` reaches `medasr-lm` with a bare `from medasr_lm import
+    ...`, and `demo/medasr_lm.py` imports `stt_extract` the same flat way, so
+    without this every `medasr-lm` arm dies as `ModuleNotFoundError` — and
+    under `strict=True` that is a failed arm on every clip, not a fallback.
+    """
+    demo = str(Path(__file__).resolve().parents[1] / "demo")
+    if demo not in sys.path:
+        sys.path.insert(0, demo)
+
+
 def _transcribe(wav: Path, decoder: str, clip_id: str) -> dict[str, Any]:
+    _ensure_demo_on_path()
     from demo.stt_extract import transcribe
 
     started = time.perf_counter()
@@ -89,6 +112,12 @@ def _extract(text: str) -> dict[str, Any]:
 
 def run(data_root: Path, *, denoisers: Sequence[str], decoders: Sequence[str],
         channel: str) -> dict[str, Any]:
+    unknown = [d for d in decoders if d not in ACCEPTED_DECODERS]
+    if unknown:
+        # Unvalidated names used to reach faster-whisper's `.get(model, "tiny")`
+        # and silently become Whisper tiny, so `medasr_lm` scored as tiny.
+        raise ValueError(
+            f"unknown decoder(s) {unknown}; accepted: {list(ACCEPTED_DECODERS)}")
     manifest = load_manifest(data_root)
     work = corpus_root(data_root) / "_runs"
     work.mkdir(parents=True, exist_ok=True)
@@ -138,7 +167,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--data-root", default=str(DATA_ROOT_DEFAULT))
     parser.add_argument("--channel", default="mix", choices=("mix", "left", "right"))
     parser.add_argument("--denoisers", default=",".join(DENOISERS))
-    parser.add_argument("--decoders", default=",".join(DECODERS))
+    parser.add_argument(
+        "--decoders", default=",".join(DECODERS),
+        help=("comma-separated; default %(default)s. Also accepted, opt-in: "
+              + ", ".join(OPTIONAL_DECODERS)
+              + " (downloads a 704 MB LM and beam-searches; much slower)."))
     arguments = parser.parse_args(argv)
     summary = run(
         Path(arguments.data_root),

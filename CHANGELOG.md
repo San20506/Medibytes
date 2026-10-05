@@ -6,6 +6,93 @@ detail (OpenSpec change, evidence directory, or commit).
 
 ## Unreleased
 
+### Held-out evaluation, vitals plausibility, structural multi-word drugs (2026-10-05)
+
+The 30-clip MediBytes dataset arrived complete - 10 clean, 10 medium-noise, 10
+heavy-noise, all 30 distinct scripts. Clips 001-007 are the existing corpus;
+**008-030 are 23 genuinely unseen clips**, and `medium_noise/` and
+`heavy_noise/` are no longer empty. Gold for the 23 was authored blind from the
+transcripts before any extractor was run against them, and frozen
+(sha256 `8ed5093f...eeecd8ac`, 119 facts). It is agent-authored and not
+clinician-reviewed. All 118 gold numbers appear in the reference transcripts,
+so misses are real rather than gold artifacts.
+
+**Measured, with the corrected scorer:**
+
+| arm | in-sample (41 facts) | **held-out (119 facts)** | drugs |
+|---|---|---|---|
+| `small-int8` (shipped default) | 85.4% | **76.5%** CI [68.1, 83.2] | 12/24 |
+| **`medasr` greedy** | 85.4% | **80.7%** CI [72.7, 86.8] | 11/24 |
+| `medasr-lm` | 70.7% | **62.2%** | 4/24 |
+| extraction ceiling (perfect text) | 100% | **100%** | 24/24 |
+
+Three things follow, and none of them is comfortable:
+
+1. **`medasr-lm` had never run.** `demo/medasr_lm.py` read the WAV with
+   `dtype="<i2>"` - a stray `>`, not a numpy dtype - so every decode died with
+   `TypeError` after the full model load; and `demo/` was never on `sys.path`
+   under the harness, so every arm failed earlier still with
+   `ModuleNotFoundError`. Both fixed. The first real measurement makes it the
+   **worst** arm, not the best: pyctcdecode warns `No known unigrams provided`
+   because the shipped LM is binary, and the fusion degrades the transcript.
+   **The spec's 37/41 "best measured configuration" is not reproducible and is
+   contradicted by this run.**
+2. **The extractor generalises; the decoder does not.** On perfect text the
+   extractor is at 100% on all four tiers. Of the held-out misses, roughly
+   three quarters are ASR-induced. Extractor work cannot close the remaining
+   gap - only a better decoder can.
+3. **`medasr` greedy beats the shipped default on held-out data** (80.7% vs
+   76.5%), which is the opposite of the in-sample tie. Switching the default is
+   a real candidate, on a 23-clip sample.
+
+**Vitals now have a physiological range check.** ASR mishearings were charting
+at YELLOW: `BP 400/65` (true 100/65), `Pulse 940` (true 94), `BP 110/17`. A
+span outside human bounds keeps its row but is forced RED. The check is
+unit-aware, so `38 degrees Celsius` is a normal fever rather than an
+impossibility - an earlier draft flagged every Celsius reading. Five garbage
+spans caught across the held-out ASR output, and **zero false alarms on all 30
+perfect transcripts**. It only catches the absurd: `pulse 160` where the truth
+is 106 still passes, by design.
+
+**Multi-word drug names are reachable structurally.** `DRUG_CTX`'s name group
+is still a single token - a greedy one invents drugs - so the name is grown
+leftwards after the match and accepted only when the joined tokens resolve in
+the formulary or the national pack. `folic acid 5 mg` and `clavulanic acid
+125 mg` now carry their dose instead of charting "no dose dictated", which was
+a false statement on the chart. A combination guard forces RED on
+`amoxicillin and clavulanic acid 625 mg`, where the multi-word name would
+otherwise have assigned the combined dose to the minor component.
+
+**The doseless path consults the national pack**, so a ward handover naming a
+drug the 36-entry formulary lacks is recorded anyway. This replaces three
+names (`ipratropium bromide`, `sodium valproate`, `normal saline`) that had
+been hand-added to the formulary *because the held-out clips named them* -
+precisely the contamination the 7-clip corpus already suffered. Two are now
+redundant and removed; `normal saline` is in no pack under any name and stays
+as a genuine formulary entry. Two guards keep analytes out: a sentence
+requesting laboratory work does not prescribe, and a name followed by a
+per-volume concentration (`calcium 9 mg/dL`) is a result, not an order.
+Because the drugs resolve through 2,542 substances rather than three
+anticipated names, the 100% held-out ceiling is no longer fitted to the test
+set.
+
+**The chart's SpO2 box no longer mis-reads percentages.** `percent` and `%` had
+been made cues on their own, so "discharge in 50 percent of cases" charted an
+oxygen saturation of 50. A percentage is now read as a saturation only when a
+saturation cue appears in the same clause. All 30 clips keep their correct
+value, including the three that motivated the change (008/013/021 -> 95/95/94).
+
+**Verification.** 325 tests pass. C4 ceiling 41/41 in-sample and 119/119
+held-out with zero spurious rows and zero wrong-polarity. Zero RED false
+alarms on perfect text. `clinical_eval.run` now validates decoder names
+(previously a typo was silently scored as Whisper tiny) and accepts
+`medasr-lm` as opt-in rather than default, since it reloads 704 MB per call.
+
+**Not claimed:** any figure at or near 95%. The best measured end-to-end result
+on unseen audio is **80.7%**, and the honest internal number for drug names is
+**11-12 of 24**.
+
+
 ### Scoreboard precision, spoken-number doses, negated prescriptions (2026-10-05)
 
 Three defects found while auditing the question *"is it 100% accurate?"*. It is

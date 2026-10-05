@@ -37,6 +37,57 @@ def fit_text(text, max_chars, overflow, font_pt=9):
 NIL_MISSING = "NIL"
 DEDUP = {"khansi": "cough", "bukhar": "fever"}
 
+# A percentage is an oxygen saturation only when a saturation cue is present.
+# The bare word "percent" is not one: "100 percent compliance" and "50 percent
+# of cases" are not readings, and 50 sits inside the plausible SpO2 range, so a
+# mischarted peri-arrest value would reach the document unchallenged.
+SPO2_CUE_RE = re.compile(r"sp[o0]2|\bo2\b|\bsats\b|saturat|room\s*air|rhoomair", re.I)
+_PERCENT_RE = re.compile(r"\d\s*(?:%|percent)|percent|%", re.I)
+
+
+def is_spo2_span(span, context=""):
+    """True when a vitals span is an oxygen saturation reading.
+
+    The vitals pattern captures a bare "95 percent", dropping the cue that made
+    it a reading ("her saturation is maintaining around ninety-five percent"),
+    so a cue-less percentage falls back to the sentence it came from. The
+    fallback is clause-scoped and only applies to a percentage - a pulse or
+    glucose span that merely shares a sentence with the word "saturation" is
+    not promoted, which would wrongly mark the SpO2 slot as already filled.
+    """
+    span = str(span or "")
+    if SPO2_CUE_RE.search(span):
+        return True
+    if not _PERCENT_RE.search(span):
+        return False
+    # A full stop between digits is a decimal point ("95.5 percent"), not a
+    # clause break; splitting there would strand the percentage from its cue.
+    for clause in re.split(r"[,;:]|\.(?!\d)", str(context or "")):
+        if _PERCENT_RE.search(clause) and SPO2_CUE_RE.search(clause):
+            return True
+    return False
+
+
+def vitals_box_kind(v):
+    """Which vitals box a span belongs in: bp / temp / spo2 / None.
+
+    Single source of truth for coords and for llm_extract's gap-fill gate; the
+    two must agree or the LLM either overwrites a charted vital or refuses to
+    fill an empty slot. An item carrying an explicit "kind" (LLM-built vitals,
+    which have no cue text and no source sentence) is taken at its word.
+    """
+    kind = v.get("kind")
+    if kind in ("bp", "temp", "spo2"):
+        return kind
+    t = str(v.get("text", ""))
+    if re.search(r"(\d{2,3}(?:\.\d{1,2})?)\s*(by|/|over|of)\s*(\d{2,3}(?:\.\d{1,2})?)", t):
+        return "bp"
+    if re.search(r"degree|temp|fahrenheit|°", t, re.I):
+        return "temp"
+    if is_spo2_span(t, v.get("source_sentence", "")):
+        return "spo2"
+    return None
+
 
 def _fmt_dose(d):
     """Returns (dose_text, dose_color, unit_text, unit_color). Never None/''."""
@@ -169,13 +220,14 @@ def resolve_slots(entities, transcript, template_id="er_discharge"):
         _TEMP_RE = r"\d{2,3}(?:\.\d{1,2})?\s*(?:degrees?(?:\s*(?:fahrenheit|celsius|F|C))?|°\s*[FC]?)"
         for v in ents.get("vitals", []):
             t = v.get("text", "")
+            kind = vitals_box_kind(v)
             m = re.search(r"(\d{2,3}(?:\.\d{1,2})?)\s*(by|/|over|of)\s*(\d{2,3}(?:\.\d{1,2})?)", t)
-            if m:
+            if kind == "bp" and m:
                 boxes["sys"], boxes["dia"] = m.group(1), m.group(3)
-            elif re.search(r"degree|temp|fahrenheit|°", t, re.I):
+            elif kind == "temp":
                 mt = re.search(_TEMP_RE, t, re.I)
                 boxes["temp"] = (mt.group(0) if mt else t)[:20]
-            elif re.search(r"spo2|o2|%|oxygen", t, re.I):
+            elif kind == "spo2":
                 ms = re.search(r"\d{2,3}(?:\.\d{1,2})?\s*%?", t)
                 boxes["spo2"] = (ms.group(0) if ms else t)[:20]
         if not any(boxes.values()):
@@ -187,8 +239,19 @@ def resolve_slots(entities, transcript, template_id="er_discharge"):
                 if mt:
                     boxes["temp"] = mt.group(0)[:20]
     vmap = {"sys": "vitals_bp_sys", "dia": "vitals_bp_dia", "temp": "vitals_temp", "spo2": "vitals_spo2"}
+    try:
+        from stt_extract import box_value_plausible
+    except Exception:
+        def box_value_plausible(_k, _t):
+            return True
     for k, key in vmap.items():
-        slots.append(slot(key, boxes[k] or NIL_MISSING, "YELLOW" if boxes[k] else "RED", ""))
+        if not boxes[k]:
+            color = "RED"
+        elif not box_value_plausible(k, boxes[k]):
+            color = "RED"
+        else:
+            color = "YELLOW"
+        slots.append(slot(key, boxes[k] or NIL_MISSING, color, ""))
 
     # allergies: active line + grey DENIED floats
     act = "; ".join(a.get("text", "") for a in ents.get("allergies", []) if not a.get("negated"))

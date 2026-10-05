@@ -85,3 +85,77 @@ def test_live_allergy_candidate():
     """
     ent, _ = _run("They don't have any known allergy to a moxasillin.")
     assert any(a["text"] == "amoxicillin" and a["negated"] for a in ent["allergies"])
+
+
+# --- SpO2 cue scoping -------------------------------------------------------
+# A percentage is only a saturation when a saturation cue is actually present.
+# The cue regex was once widened to treat the bare word "percent" as a cue, to
+# rescue spans like "95 percent" whose cue sits in the sentence rather than the
+# span. That rescued the real reading and also charted every other percentage
+# as an SpO2 - including 50, a peri-arrest value that passes the plausibility
+# range, so nothing downstream caught it.
+
+def test_percent_without_saturation_cue_is_not_spo2():
+    """"100 percent compliance" is not a saturation; the box stays NIL/RED."""
+    _, slots = _run("Give 500 mg paracetamol, 100 percent compliance expected.")
+    assert slots["vitals_spo2"]["text"] == "NIL"
+    assert slots["vitals_spo2"]["color"] == "RED"
+
+
+def test_percent_of_cases_is_not_spo2():
+    """SpO2 50% is peri-arrest and 50 is inside the plausible range, so a
+    mischarted "50 percent of cases" would reach the chart unchallenged."""
+    _, slots = _run("Discharge in 50 percent of cases.")
+    assert slots["vitals_spo2"]["text"] == "NIL"
+    assert slots["vitals_spo2"]["color"] == "RED"
+
+
+def test_saturation_cue_in_span_charts_spo2():
+    _, slots = _run("Oxygen saturation is 98 percent on room air.")
+    assert "98" in slots["vitals_spo2"]["text"]
+    assert slots["vitals_spo2"]["color"] == "YELLOW"
+
+
+def test_saturation_cue_in_sentence_charts_spo2():
+    """MB_MED_008: the vitals pattern captures a bare "95 percent"; the cue
+    ("her saturation is maintaining") is in the sentence, not the span."""
+    _, slots = _run("She's receiving oxygen through a face mask at six litres "
+                    "per minute, and her saturation is maintaining around "
+                    "ninety-five percent.")
+    assert "95" in slots["vitals_spo2"]["text"]
+
+
+def test_saturation_cue_in_other_clause_does_not_leak():
+    """A cue elsewhere in the sentence must not promote an unrelated percentage."""
+    _, slots = _run("Her saturation was checked on admission; "
+                    "discharge follows in 50 percent of cases.")
+    assert "50" not in slots["vitals_spo2"]["text"]
+
+
+def test_regex_vitals_gate_sees_sentence_level_cue():
+    """merge_primary must not let the LLM overwrite a sentence-cued SpO2."""
+    from llm_extract import merge_primary
+    regex_ent = {"drugs": [], "symptoms": [], "allergies": [], "vitals": [
+        {"text": "95 percent",
+         "source_sentence": "her saturation is maintaining around ninety-five percent."}]}
+    merged = merge_primary(regex_ent, {"structured_vitals": {"spo2": "88%"},
+                                       "vitals": [{"text": "88%", "kind": "spo2"}]})
+    assert "spo2" not in merged.get("structured_vitals", {})
+    assert all(v.get("text") != "88%" for v in merged["vitals"])
+
+
+def test_llm_fills_spo2_when_regex_percent_was_not_a_saturation():
+    """The gate must not be so narrow that a genuinely empty slot stays empty."""
+    from llm_extract import merge_primary
+    regex_ent = {"drugs": [], "symptoms": [], "allergies": [], "vitals": [
+        {"text": "100 percent",
+         "source_sentence": "Give 500 mg paracetamol, 100 percent compliance expected."}]}
+    merged = merge_primary(regex_ent, {"structured_vitals": {"spo2": "97%"},
+                                       "vitals": [{"text": "97%", "kind": "spo2"}]})
+    assert merged["structured_vitals"]["spo2"] == "97%"
+
+
+def test_decimal_saturation_keeps_its_sentence_cue():
+    """Live STT writes digits; "95.5" must not be split into two clauses."""
+    _, slots = _run("Her saturation is 95.5 percent.")
+    assert "95.5" in slots["vitals_spo2"]["text"]

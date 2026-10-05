@@ -65,6 +65,99 @@ VITALS_PAT = re.compile(
     r"|temp[^\d.]{0,10}" + TEMP_NUM + r")",
     re.I,
 )
+# Physiological plausibility: generous bounds that only catch ASR garbage
+# (pulse 940, BP 400/65, SpO2 400%) — never a real reading. A violation keeps
+# the row (recall unchanged) but forces RED so it cannot chart at YELLOW.
+VITALS_RANGES = {
+    "spo2": (50.0, 100.0),
+    "pulse": (20.0, 250.0),
+    "temp_f": (90.0, 110.0),
+    # The same reading in the other scale. Widening `temp_f` to cover Celsius
+    # would have to reach down to 30, and 38 - a textbook fever in Celsius -
+    # is also what a decoder produces when it drops a digit from a Fahrenheit
+    # reading, so one range cannot both admit Celsius and still catch garbage.
+    # The unit the span carries decides which range applies.
+    "temp_c": (30.0, 45.0),
+    "bp_sys": (50.0, 300.0),
+    "bp_dia": (20.0, 200.0),
+    "rr": (5.0, 80.0),
+    "glucose": (20.0, 1500.0),
+}
+
+
+def _vital_span_kind(span):
+    """Kind of a vitals span for the plausibility check (mirrors scorer cues)."""
+    if re.search(r"\bBP\b|blood\s*pressure|\d+\s*(?:by|/|over|of)\s*\d+", span, re.I):
+        return "bp"
+    if re.search(r"spo2|sp02|o2\s*sat|oxygen\s*sat|saturation|%|percent", span, re.I):
+        return "spo2"
+    if re.search(r"temp|fahrenheit|celsius|degree|°", span, re.I):
+        return "temp_f"
+    if re.search(r"respiratory\s*rate|resp\b|respiration|breathing\s*rate", span, re.I):
+        return "rr"
+    if re.search(r"pulse|heart\s*rate|\bHR\b", span, re.I):
+        return "pulse"
+    if re.search(r"glucose|sugar|BGL|RBS|CBG|mg\s*/\s*d[lL]|mmol"
+                 r"|milligrams?\s+per\s+decilit(?:re|er)"
+                 r"|millimoles?\s+per\s+lit(?:re|er)", span, re.I):
+        return "glucose"
+    return None
+
+
+# A Celsius marker attached to the number itself: "38 degrees Celsius",
+# "38 °C", "38 C". The digit prefix is what keeps it from firing on a stray
+# capital C elsewhere in the span, and `(?![A-Za-z])` stops a bare `C` from
+# matching the first letter of `Celsius`'s neighbours or of `cardiac`.
+_CELSIUS = re.compile(r"\d\s*(?:°\s*|degrees?\s*)?(?:celsius\b|centigrade\b|C(?![A-Za-z]))", re.I)
+
+
+def _temp_scale(span):
+    """`temp_c` when the span says Celsius, else `temp_f`.
+
+    Unmarked stays Fahrenheit: that is the scale this project's gold data and
+    its charts are written in, and treating an unmarked number as "whichever
+    scale makes it plausible" would retire the check entirely.
+    """
+    return "temp_c" if _CELSIUS.search(span) else "temp_f"
+
+
+def vital_span_plausible(span):
+    """(ok, note) — False only when a number in the span is outside any human range."""
+    kind = _vital_span_kind(span)
+    if kind == "temp_f":
+        kind = _temp_scale(span)
+    nums = [float(n) for n in re.findall(r"\d+(?:\.\d+)?", span)]
+    if kind == "bp" and len(nums) >= 2:
+        lo_sys, hi_sys = VITALS_RANGES["bp_sys"]
+        lo_dia, hi_dia = VITALS_RANGES["bp_dia"]
+        if not (lo_sys <= nums[0] <= hi_sys and lo_dia <= nums[1] <= hi_dia):
+            return False, (f"physiologically implausible BP {nums[0]:g}/{nums[1]:g} "
+                           "- human must confirm")
+        return True, ""
+    if kind in VITALS_RANGES and nums:
+        lo, hi = VITALS_RANGES[kind]
+        bad = [n for n in nums if not (lo <= n <= hi)]
+        if bad:
+            return False, (f"physiologically implausible {kind} "
+                           f"{', '.join(f'{n:g}' for n in bad)} - human must confirm")
+    return True, ""
+
+
+def box_value_plausible(box_key, text):
+    """Box-level check for coords: box_key is sys/dia/temp/spo2."""
+    m = re.search(r"\d+(?:\.\d+)?", text or "")
+    if not m:
+        return True
+    v = float(m.group(0))
+    # The temp box keeps the unit it was cut from, so the same scale test the
+    # sentence-level check uses applies here too.
+    ranges = {"sys": VITALS_RANGES["bp_sys"], "dia": VITALS_RANGES["bp_dia"],
+              "temp": VITALS_RANGES[_temp_scale(text or "")],
+              "spo2": VITALS_RANGES["spo2"]}
+    lo, hi = ranges.get(box_key, (float("-inf"), float("inf")))
+    return lo <= v <= hi
+
+
 NEG_PAT = re.compile(r"\b(no|not|denies|denied|denying|without|never|neither|nor|negative for|no known|don't|doesn't|aren't|isn't|wasn't|weren't|can't|cannot)\b", re.I)
 DENIED_SYMPTOMS = ("chest pain", "breathlessness")
 FREQ_PAT = (r"BID|OD|TDS|QID|once daily|twice daily|thrice daily|daily|B\.I\.D\.?"
@@ -419,11 +512,36 @@ def transcribe(clean_wav, job_id="demo-001", model="small-int8", strict: bool = 
             if strict:
                 raise
             return _mock_result(clean_wav, job_id, model, exc, "no medasr")
+    if model == "medasr-lm":
+        try:
+            from medasr_lm import transcribe_medasr_lm
+            return transcribe_medasr_lm(clean_wav, job_id)
+        except Exception as exc:
+            if strict:
+                raise
+            return _mock_result(clean_wav, job_id, model, exc, "no medasr-lm")
     try:
         import faster_whisper as faster_whisper_module
         from faster_whisper import WhisperModel
-        size = {"tiny-int8": "tiny", "base-int8": "base", "small-int8": "small"}.get(model, "tiny")
-        wm = WhisperModel(size, device="cpu", compute_type="int8")
+        size = {"tiny-int8": "tiny", "base-int8": "base", "small-int8": "small",
+                "medium": "medium", "large-v3": "large-v3"}.get(model, "tiny")
+        try:
+            import torch as _torch
+            _has_cuda = _torch.cuda.is_available()
+        except Exception:
+            _has_cuda = False
+        if model in ("medium", "large-v3") and _has_cuda:
+            try:
+                wm = WhisperModel(size, device="cuda", compute_type="float16")
+                _device, _compute = "cuda", "float16"
+            except Exception:
+                # ctranslate2 build may want a libcublas older than the
+                # system CUDA (e.g. .so.12 vs installed .so.13) - fall back.
+                wm = WhisperModel(size, device="cpu", compute_type="int8")
+                _device, _compute = "cpu", "int8"
+        else:
+            wm = WhisperModel(size, device="cpu", compute_type="int8")
+            _device, _compute = "cpu", "int8"
         segments, info = wm.transcribe(
             clean_wav, beam_size=1, word_timestamps=True, temperature=0.0,
             no_speech_threshold=0.6, compression_ratio_threshold=2.4,
@@ -445,8 +563,8 @@ def transcribe(clean_wav, job_id="demo-001", model="small-int8", strict: bool = 
             "provider": "faster-whisper",
             "requested_model": model,
             "actual_model": size,
-            "device": "cpu",
-            "compute_type": "int8",
+            "device": _device,
+            "compute_type": _compute,
             "word_timestamps": True,
             "temperature": 0.0,
             "beam_size": 1,
@@ -458,7 +576,7 @@ def transcribe(clean_wav, job_id="demo-001", model="small-int8", strict: bool = 
             "is_mock": False,
         }
         return {"text": text, "segments": segs,
-                "engine": f"faster-whisper:{size}-cpu-int8",
+                "engine": f"faster-whisper:{size}-{_device}-{_compute}",
                 "language": getattr(info, "language", "en"),
                 "stt_provenance": provenance}
     except Exception as exc:
@@ -626,6 +744,74 @@ def _prefer_dosed(drugs):
         if name not in best or (best[name].get("dose") is None and drug.get("dose") is not None):
             best[name] = drug
     return list(best.values())
+
+
+# `DRUG_CTX`'s name group is a single token, so a two-word medicine reaches
+# the matcher as its last word only: "clavulanic acid 125 mg" offers `acid`,
+# and "folic acid 5 mg" offers `acid` and is dropped outright. Both are orders
+# whose dose was dictated, and what the chart showed was either no row at all
+# or a row saying "no dose dictated" - a statement about the recording that is
+# simply false.
+#
+# The name is grown leftwards after the match rather than widened in the
+# pattern. A greedy multi-token name group would make the common cases worse,
+# offering "was 200 mg" and "and paracetamol 500 mg" as drugs called `was` and
+# `and paracetamol`. So an extension is accepted only when the joined words
+# are themselves a name the vocabulary resolves - the mini list, or an exact
+# substance in the national pack, with the pack's brand and stopword gates
+# applied. That is the same bar `_reference_only_row` uses downstream, so a
+# longer match can never invent a drug: it can only recognise one that would
+# equally have been accepted had it been dictated as a single word.
+MAX_NAME_WORDS = 3
+_WORD_BEFORE = re.compile(r"([A-Za-z]+)\s+$")
+# The word immediately before a multi-word name, however it is joined -
+# "amoxicillin and clavulanic acid", "amoxicillin clavulanic acid",
+# "amoxicillin-clavulanic acid". When that word is itself a drug, the 625 mg
+# that follows is the combination's total strength, not this component's dose.
+_COMBINATION_JOIN = re.compile(
+    r"([A-Za-z]+)\s*(?:[-/,+]\s*)?(?:(?:and|with|plus)\s+)?$", re.I)
+
+
+def _name_resolves(name, drugs_known, alias_to_canonical):
+    """True when `name` is a medicine this pipeline already knows by name."""
+    if name in drugs_known or name in alias_to_canonical:
+        return True
+    try:
+        import drug_reference
+    except ImportError:
+        return False
+    return bool(drug_reference.lookup(
+        name, block=drug_reference.STOPWORDS, brands=False))
+
+
+def _extend_name(clause, start, end, drugs_known, alias_to_canonical):
+    """(name, start, extended) - the longest resolvable name ending at `end`.
+
+    Longest-first, so "sodium valproate" wins over "valproate" where both
+    resolve. Falls back to the single token the pattern matched, leaving every
+    one-word case exactly as it was.
+    """
+    starts, at = [], start
+    while len(starts) < MAX_NAME_WORDS - 1:
+        m = _WORD_BEFORE.search(clause, 0, at)
+        if not m:
+            break
+        at = m.start(1)
+        starts.append(at)
+    for s in reversed(starts):
+        cand = " ".join(clause[s:end].split()).lower()
+        if _name_resolves(cand, drugs_known, alias_to_canonical):
+            return cand, s, True
+    return clause[start:end].lower(), start, False
+
+
+def _combination_partner(clause, start, drugs_known, alias_to_canonical):
+    """The drug this one is conjoined to, when a shared dose follows both."""
+    m = _COMBINATION_JOIN.search(clause, 0, start)
+    if not m:
+        return None
+    other = m.group(1).lower()
+    return other if _name_resolves(other, drugs_known, alias_to_canonical) else None
 
 
 def _drug_name_pattern(alias_to_canonical):
@@ -937,6 +1123,71 @@ def _split_clauses(sent):
     return out
 
 
+# A sentence that orders laboratory work is not prescribing. "Blood samples
+# have been sent to check creatinine, urea, sodium and potassium levels" names
+# four substances, three of which the national pack lists as real medicines -
+# potassium and sodium are genuinely prescribed, just not here. Rather than
+# block those names globally (which would lose a real potassium order), the
+# sentence itself is read: a lab-request cue suppresses reference-only doseless
+# rows within it. The curated mini list is exempt, because a name someone put
+# in this project's own formulary is a deliberate choice.
+_LAB_REQUEST = re.compile(
+    r"\b(?:sent|send|sending|collected|check(?:ing|ed)?|request(?:ed)?|advised"
+    r"|ordered)\b[^.]{0,80}?\b(?:sample|samples|test|tests|level|levels|profile"
+    r"|culture|screening|panel|analysis|function)\b"
+    r"|\b(?:sample|samples|test|tests|level|levels|profile|culture|screening"
+    r"|panel)\b[^.]{0,40}?\b(?:sent|send|collected|requested|advised)\b", re.I)
+
+
+_LAB_VALUE_AFTER = re.compile(
+    r"\s*(?:is|was|of|at)?\s*\d+(?:\.\d+)?\s*"
+    r"(?:mg|mcg|g|mmol|meq|units?)\s*(?:/|per\s+)\s*"
+    r"(?:d[lL]\b|L\b|lit(?:re|er)s?\b|decilit(?:re|er)s?\b)", re.I)
+
+
+def _reference_doseless(sent, taken, alias_to_canonical, drugs_known):
+    """Doseless drug mentions the curated list has never heard of.
+
+    `known_name_pat` is built from a 36-entry formulary, so a ward handover
+    saying "nebulisation with salbutamol and ipratropium bromide" records only
+    the half that list happens to contain.  The national pack carries 2,542
+    substances, 628 of them multi-word, and consulting it here is what makes
+    the doseless path generalise instead of being extended by hand every time
+    an unseen clip names a drug the list lacks.
+
+    Longest match wins, so "sodium valproate" is not recorded as "sodium".
+    """
+    try:
+        import drug_reference
+    except ImportError:
+        return []
+    if not drug_reference.available() or _LAB_REQUEST.search(sent):
+        return []
+    words = [(m.group(0), m.start(), m.end()) for m in re.finditer(r"[A-Za-z]+", sent)]
+    out, consumed = [], set()
+    for n in (3, 2, 1):
+        for i in range(len(words) - n + 1):
+            if any(j in consumed for j in range(i, i + n)):
+                continue
+            join = " ".join(w[0] for w in words[i:i + n]).lower()
+            if join in alias_to_canonical or join in drugs_known or join in taken:
+                continue
+            rec = drug_reference.lookup(join, block=drug_reference.STOPWORDS,
+                                        brands=False)
+            if not rec:
+                continue
+            # "calcium 9 mg/dL" is a result, not an order. The dosed path
+            # already refuses a per-volume concentration; the doseless path
+            # needs the same test, because the analyte is a real medicine and
+            # cannot simply be blocked by name.
+            if _LAB_VALUE_AFTER.match(sent, words[i + n - 1][2]):
+                continue
+            consumed.update(range(i, i + n))
+            out.append((drug_reference.inn_name(rec["name"]),
+                        words[i][1], words[i + n - 1][2]))
+    return out
+
+
 def extract_entities(text, normalized_en, segments):
     """Stage 4 regex core. Returns demo entities_json."""
     drugs_known = {d["name"].lower() for d in _load_drug_list()}
@@ -970,7 +1221,9 @@ def extract_entities(text, normalized_en, segments):
             for m in DRUG_CTX.finditer(clause):
                 if _is_lab_concentration(clause, m):
                     continue
-                rawm = m.group("name").lower()
+                rawm, name_at, extended = _extend_name(
+                    clause, m.start("name"), m.end("name"),
+                    drugs_known, alias_to_canonical)
                 canon = alias_to_canonical.get(rawm)
                 fuzzy_note, candidates = "", []
                 ref_hit = None
@@ -993,7 +1246,7 @@ def extract_entities(text, normalized_en, segments):
                             fuzzy_note = f"fuzzy {rawm}->{canon} ({score:.2f})"
                         else:
                             continue  # skip non-drug words; drug_list is the mini-RxNorm
-                if _overlaps(allergy_spans, m.start("name"), m.end("name")):
+                if _overlaps(allergy_spans, name_at, m.end("name")):
                     continue  # the allergy rules below own this mention
                 dose = float(m.group("dose")) if m.group("dose") else None
                 raw_unit = (m.group("unit") or "").strip()
@@ -1030,6 +1283,20 @@ def extract_entities(text, normalized_en, segments):
                     elif ruled_out:
                         fuzzy_note = (f"{fuzzy_note}; dose implausible for "
                                       f"{', '.join(ruled_out)}")
+                # "amoxicillin and clavulanic acid 625 mg" is one combination
+                # tablet and 625 is its total strength, not this component's
+                # dose. Before the multi-word name existed this sentence could
+                # not produce a dosed row at all, so the guard is scoped to
+                # the newly reachable case rather than rewriting how a dose
+                # attaches to a conjoined single-word drug, which is older
+                # behaviour nobody asked to change here.
+                if extended and dose and not dose_red:
+                    partner = _combination_partner(
+                        clause, name_at, drugs_known, alias_to_canonical)
+                    if partner:
+                        dose_red = (f"combination order: {dose:g} {unit or ''} may be "
+                                    f"the total for {partner} + {canon or rawm} "
+                                    "- physician must confirm")
                 if fuzzy_note:
                     conf = 0.88  # fuzzy match -> YELLOW, human must glance
                     color = "YELLOW"
@@ -1043,7 +1310,7 @@ def extract_entities(text, normalized_en, segments):
                 # with `_negated_before`; the dosed path simply never did.
                 # Scope is the same prefix test, so "she has no fever, give
                 # paracetamol 500 mg" still prescribes.
-                negated = _drug_negated(sent[:clause_at + m.start("name")])
+                negated = _drug_negated(sent[:clause_at + name_at])
                 if negated:
                     # The row leaves the active medication list and is rendered
                     # under NOT GIVEN instead, so a mis-scoped negation is
@@ -1096,6 +1363,20 @@ def extract_entities(text, normalized_en, segments):
                           "confidence": 0.70, "color": "RED",
                           "source_sentence": proof_sent, "negated": False,
                           "note": "no dose dictated - physician must confirm"})
+        for canon, cstart, cend in _reference_doseless(
+                sent, {d["name"] for d in drugs}, alias_to_canonical, drugs_known):
+            if any(d["name"] == canon for d in drugs):
+                continue
+            if _overlaps(allergy_spans, cstart, cend):
+                continue
+            if _drug_negated(sent[:cstart]):
+                continue
+            drugs.append({"name": canon, "dose": None, "unit": None,
+                          "frequency": "", "duration": "",
+                          "confidence": 0.70, "color": "RED",
+                          "source_sentence": proof_sent, "negated": False,
+                          "note": "no dose dictated - physician must confirm "
+                                  "(national drug list, not this pipeline's own)"})
         low = sent.lower()
         matched = set()
         for s in SYMPTOMS:
@@ -1144,8 +1425,13 @@ def extract_entities(text, normalized_en, segments):
                                       "color": "RED", "source_sentence": proof_sent,
                                       "note": "ASSERTED allergy - confirm before prescribing"})
         for vm in VITALS_PAT.finditer(sent):
-            vitals.append({"text": vm.group(0), "confidence": 0.87, "color": "YELLOW",
-                           "source_sentence": proof_sent})
+            ok, note = vital_span_plausible(vm.group(0))
+            if ok:
+                vitals.append({"text": vm.group(0), "confidence": 0.87, "color": "YELLOW",
+                               "source_sentence": proof_sent})
+            else:
+                vitals.append({"text": vm.group(0), "confidence": 0.70, "color": "RED",
+                               "source_sentence": proof_sent, "note": note})
         if re.search(r"\bno allergy\b", sent, re.I):
             negations.append({"span": "No allergy", "negated": True,
                               "note": "rule stand-in for CAN-BERT"})
