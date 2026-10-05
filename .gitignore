@@ -37,3 +37,6 @@ eval/.cache/
 # Audio, models and run artefacts stay in the data root and are gitignored
 # upstream; manifests reference them by absolute path and SHA-256.
 /evidence/
+
+# HTTP backend job tree (uploads + per-job pipeline outputs)
+demo/_server_jobs/

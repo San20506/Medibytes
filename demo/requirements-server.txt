@@ -1,0 +1,6 @@
+# HTTP backend over the demo pipeline (demo/server.py).
+# Install on top of requirements-demo.txt.
+fastapi>=0.142
+uvicorn>=0.54
+python-multipart>=0.0.32   # required for UploadFile; without it POST /jobs fails at request time
+httpx>=0.28                # fastapi.testclient, used by demo/tests/test_server.py

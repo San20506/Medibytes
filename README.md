@@ -189,6 +189,56 @@ python demo/pipeline.py --in "YOUR_FILE.mp3" --key my-003 --model tiny-int8 --te
 #   --gen-samples           (2 synthetic tone wavs for offline plumbing tests)
 ```
 
+### HTTP backend (verification & evaluation)
+
+A thin FastAPI service over the same chain. It calls `pipeline.run_pipeline()`,
+the function `demo/pipeline.py` itself calls, so a run through the API cannot
+drift from the shipped pipeline.
+
+```bash
+uv pip install --python .venv/bin/python -r demo/requirements-server.txt
+python demo/server.py            # http://127.0.0.1:8000/docs
+```
+
+| Route | Purpose |
+|---|---|
+| `GET /api/health` | which denoiser backends actually load, via each adapter's own `probe()` |
+| `POST /api/audio/jobs` | multipart upload + `denoiser`, `model`, `template`, `use_llm`, `denoiser_config`; returns `202` and a `job_id` |
+| `GET /api/audio/jobs/{id}` | status plus every stage: clean meta, transcript, entities, stage log, and `observed` |
+| `GET /api/audio/jobs/{id}/export.html` / `.docx` | the filled note |
+| `DELETE /api/audio/jobs/{id}` | drop a job record |
+| `POST /api/eval/run` | runs `clinical_eval.run` + `clinical_eval.score` (the 7-clip component eval), not new metrics |
+
+```bash
+curl -X POST localhost:8000/api/audio/jobs \
+  -F "file=@demo/audio_in/sample1_hinglish_fever.wav" \
+  -F model=base-int8 -F denoiser=none -F use_llm=false
+curl localhost:8000/api/audio/jobs/<job_id>
+```
+
+The `observed` block is the point of the backend for evaluation: it reports
+`actual_denoiser`, `variant_id`, `stt_engine`, full `stt_provenance`
+(including `is_mock`), `llm_engine` when LLM extraction silently fell back to
+regex, and a `mismatches` list when what ran differs from what was requested.
+Without it a scored run can quietly be a fallback measuring nothing.
+
+One inference worker processes jobs serially (the models are heavy and the
+idempotency ledger is a read-modify-write on a JSON file). The job id keys on
+the upload bytes *and* the configuration, so the same clip under two denoisers
+produces two jobs instead of overwriting one. Job outputs go to
+`demo/_server_jobs/` (gitignored), not the committed `demo/` demo data;
+override with `MEDIBYTES_JOB_ROOT`. Host and port: `MEDIBYTES_HOST`,
+`MEDIBYTES_PORT`.
+
+```bash
+python -m pytest demo/tests/test_server.py -q
+```
+
+The suite includes a CLI/API parity test on the mock decoder. The same check was
+run manually with a real model (`base-int8` on `luvvoice.com-20260921-LnWlf1.mp3`,
+CLI entry point vs. `POST /api/audio/jobs`): identical raw text, `normalized_en`,
+segments, `stt_engine` and entities.
+
 ### Golden numeral tests
 
 ```powershell
