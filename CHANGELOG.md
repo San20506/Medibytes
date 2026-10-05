@@ -6,6 +6,61 @@ detail (OpenSpec change, evidence directory, or commit).
 
 ## Unreleased
 
+### Second decoder pass for drug names (2026-10-05)
+
+The decoders mishear different words, and that disagreement is worth more than
+any single-decoder change measured so far. On the 23 held-out clips `medasr`
+recovers 14 of 24 gold drugs and `small-int8` 15 - but their **union is 20**.
+
+`run_stt_extract` now decodes a second time and unions the **drug rows only**.
+That asymmetry is the whole design, and it is measured, not assumed:
+
+| merge | facts | drugs | spurious |
+|---|---|---|---|
+| medasr alone | 99/119 = 83.2% | 14/24 | drugs 0, vitals 12 |
+| **drugs only (shipped)** | **105/119 = 88.2%** | **20/24** | **drugs 0, vitals 12** |
+| drugs *and* vitals | 107/119 = 89.9% | 20/24 | drugs 0, vitals **44** |
+
+A drug name is a discrete thing: if either decoder heard `ondansetron`,
+something was said, and de-duplicating on the canonical name added **zero**
+spurious drug rows. A vital is a number plus a span of prose, so the same
+reading returns as "pulse is 102" from one decoder and "pulse 102" from the
+other; the union cannot tell those apart and produces 44 spurious spans
+against 12. So the second pass contributes drug rows only.
+
+A row only one decoder heard is weaker evidence than one they agree on. It is
+never GREEN, is capped at 0.70 confidence, and says `heard only by <decoder>`
+on the row. Rows both decoders agree on are untouched.
+
+**Measured, held-out (119 facts, frozen gold):**
+
+| | before | after |
+|---|---|---|
+| facts | 83.2% CI [75.5, 88.8] | **88.2%** CI [81.2, 92.9] |
+| drugs | 14/24 | **20/24** |
+| spurious drug rows | 0 | **0** |
+| in-sample | 36/41 | **38/41 = 92.7%** |
+
+Cost is a second decode: **~9.2 s/clip** against 0.2 s for MedASR alone,
+because Whisper `small` dominates. `second_pass="auto"` pairs the decoders
+measured to disagree usefully; pass `second_pass=None` to turn it off. A failed
+second decode is recorded and ignored - a second opinion is a bonus, never a
+failure.
+
+One false positive surfaced and was fixed: "keep **anti-histamines** ready"
+charted a `histamine` order, because the word scanner split on the hyphen and
+`histamine` is a real substance in the pack. Hyphenated compounds now stay
+whole, which also preserves real names such as `co-amoxiclav`.
+
+The extraction ceiling is unchanged at 41/41 in-sample and 119/119 held-out.
+332 tests pass.
+
+**Remaining gap.** Of the 20 misses before this change, 17 were the decoder
+failing to emit the word or number at all. This change harvests the part of
+that which a *second* decoder happens to hear; the rest is not reachable by
+post-processing.
+
+
 ### Sound-alike repair now runs on doseless drug mentions (2026-10-05)
 
 The fuzzy matcher existed to repair a misheard drug name, and on ward

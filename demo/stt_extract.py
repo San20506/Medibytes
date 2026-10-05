@@ -1185,7 +1185,13 @@ def _reference_doseless(sent, taken, alias_to_canonical, drugs_known):
         return []
     if not drug_reference.available() or _LAB_REQUEST.search(sent):
         return []
-    words = [(m.group(0), m.start(), m.end()) for m in re.finditer(r"[A-Za-z]+", sent)]
+    # Hyphenated compounds stay whole. Splitting them handed the matcher the
+    # tail of a negated or class term: "keep anti-histamines ready" became a
+    # `histamine` order, because `histamine` is a real substance in the pack.
+    # Keeping the compound intact also preserves real hyphenated drug names
+    # such as `co-amoxiclav`.
+    words = [(m.group(0), m.start(), m.end())
+             for m in re.finditer(r"[A-Za-z]+(?:-[A-Za-z]+)*", sent)]
     out, consumed = [], set()
     for n in (3, 2, 1):
         for i in range(len(words) - n + 1):
@@ -1597,9 +1603,53 @@ def _run_term_validation(ent, validate_terms, ollama_model):
     return apply_validation(ent, model=ollama_model)
 
 
+def _union_drugs(primary, second_text, second_model, segments):
+    """Add drug rows a second decoder heard and the primary one missed.
+
+    The decoders fail on different words. Measured on the 23 held-out clips,
+    `medasr` recovers 14 of 24 gold drugs and `small-int8` 15, but their union
+    is 20 - six drugs exist in one transcript and not the other, which is a
+    bigger gap than any single-decoder change has produced.
+
+    Drugs are unioned and vitals are not, and that asymmetry is the whole
+    design. A drug name is a discrete thing: if either decoder heard
+    `ondansetron`, something was said, and de-duplicating on the canonical
+    name keeps the list clean - the union added **zero** spurious drug rows.
+    Vitals are a number plus a span of prose, so the same reading comes back
+    as "pulse is 102" from one decoder and "pulse 102" from the other; the
+    union could not tell those apart and produced 44 spurious spans against
+    12. So the second pass contributes drug rows only.
+
+    A row that only one decoder heard is weaker evidence than one they agree
+    on, so it is never GREEN and it names the decoder that found it.
+    """
+    known = {str(d.get("name", "")).lower() for d in primary.get("drugs", [])}
+    extra = extract_entities(second_text, normalize_text(second_text)["normalized_en"],
+                             segments)
+    added = []
+    for row in extra.get("drugs", []):
+        name = str(row.get("name", "")).lower()
+        if not name or name in known:
+            continue
+        known.add(name)
+        row = dict(row)
+        row["confidence"] = min(float(row.get("confidence", 0.70)), 0.70)
+        row["color"] = "RED" if row.get("color") == "RED" else "YELLOW"
+        row["note"] = (f"{row.get('note', '')} | heard only by {second_model}, "
+                       f"not by the primary decoder").strip(" |")
+        row["second_pass"] = second_model
+        added.append(row)
+    primary["drugs"] = list(primary.get("drugs", [])) + added
+    if added:
+        primary["drug_second_pass"] = {"model": second_model,
+                                       "added": [r["name"] for r in added]}
+    return primary
+
+
 def run_stt_extract(
     clean_wav, job_id="demo-001", use_llm="auto", model="medasr",
     ollama_model="llama3.2:3b", strict: bool = False, validate_terms="auto",
+    second_pass="auto",
 ):
     stt = transcribe(clean_wav, job_id, model=model, strict=strict)
     norm = normalize_text(stt["text"])
@@ -1625,6 +1675,20 @@ def run_stt_extract(
             ent = ollama_tidy(ent, norm["normalized_en"], model=ollama_model)
         elif use_llm == "auto" and llm_reason:
             ent["llm_engine"] = f"regex-fallback ({llm_reason})"
+    # Second decoder, drug rows only. `auto` pairs the two decoders that were
+    # measured to disagree most usefully and skips the work when the primary
+    # is already one of a pair that would duplicate it.
+    pair = {"medasr": "small-int8", "medasr-lm": "small-int8",
+            "small-int8": "medasr"}
+    second = pair.get(model) if second_pass == "auto" else second_pass
+    if second and second != model:
+        try:
+            alt = transcribe(clean_wav, job_id, model=second, strict=False)
+            if not alt.get("stt_provenance", {}).get("is_mock"):
+                ent = _union_drugs(ent, alt["text"], second, alt.get("segments") or [])
+        except Exception as exc:  # a second opinion is a bonus, never a failure
+            ent["drug_second_pass"] = {"model": second,
+                                       "error": f"{type(exc).__name__}: {exc}"[:120]}
     ent = _run_term_validation(ent, validate_terms, ollama_model)
     ent = _annotate_entity_spans(ent, norm["normalized_en"])
     transcript_json = {"job_id": job_id, "text": stt["text"], "language": norm["lang_tag"],

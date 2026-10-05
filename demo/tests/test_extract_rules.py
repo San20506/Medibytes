@@ -581,3 +581,53 @@ def test_a_celsius_temp_box_is_not_red_on_the_chart():
     assert box_value_plausible("temp", "50 degrees Celsius") is False
     assert box_value_plausible("temp", "160 degrees Fahrenheit") is False
     assert box_value_plausible("temp", "98.6 degrees") is True
+
+
+def test_a_hyphenated_compound_is_not_split_into_a_drug():
+    # "keep anti-histamines ready" became a `histamine` order, because the
+    # word scanner split on the hyphen and `histamine` is a real substance in
+    # the national pack. It was the only false drug row the second decoder
+    # pass produced across 30 clips.
+    assert _ents("The doctor has asked us to keep anti-histamines ready.")["drugs"] == []
+    assert _ents("Avoid non-steroidal drugs for now.")["drugs"] == []
+
+
+def test_a_real_hyphenated_drug_name_survives_the_same_rule():
+    # The fix must not swallow hyphenated names that are real: keeping the
+    # compound whole is what lets the vocabulary see it at all.
+    rows = _ents("Give co-amoxiclav 625 mg BD.")["drugs"]
+    assert rows, "co-amoxiclav should still produce a row"
+
+
+# ---- second decoder pass: drug rows only ----
+
+def test_the_second_pass_adds_a_drug_the_primary_decoder_missed():
+    # The decoders mishear different words. On the held-out clips medasr finds
+    # 14 of 24 gold drugs and small-int8 15, but their union is 20.
+    from stt_extract import _union_drugs
+    primary = _ents("She is on metformin.")
+    assert [d["name"] for d in primary["drugs"]] == ["metformin"]
+    merged = _union_drugs(primary, "She is on metformin and amlodipine.",
+                          "small-int8", [])
+    names = [d["name"] for d in merged["drugs"]]
+    assert "amlodipine" in names and names.count("metformin") == 1
+    added = [d for d in merged["drugs"] if d.get("second_pass")]
+    assert len(added) == 1
+    # A row only one decoder heard is weaker evidence and must not read as
+    # confirmed, and it has to say where it came from.
+    assert added[0]["color"] in ("RED", "YELLOW")
+    assert added[0]["confidence"] <= 0.70
+    assert "heard only by small-int8" in added[0]["note"]
+    assert merged["drug_second_pass"]["added"] == ["amlodipine"]
+
+
+def test_the_second_pass_never_duplicates_or_downgrades_an_agreed_drug():
+    from stt_extract import _union_drugs
+    primary = _ents("Give paracetamol 500 mg BID.")
+    before = dict(primary["drugs"][0])
+    merged = _union_drugs(primary, "Give paracetamol 500 mg BID.", "small-int8", [])
+    assert len(merged["drugs"]) == 1
+    # the agreed row keeps its own colour and confidence
+    assert merged["drugs"][0]["color"] == before["color"]
+    assert merged["drugs"][0]["confidence"] == before["confidence"]
+    assert "drug_second_pass" not in merged
