@@ -6,6 +6,56 @@ detail (OpenSpec change, evidence directory, or commit).
 
 ## Unreleased
 
+### Sound-alike repair now runs on doseless drug mentions (2026-10-05)
+
+The fuzzy matcher existed to repair a misheard drug name, and on ward
+dictation it never ran. It lived inside `DRUG_CTX`, which requires
+`name + number + unit`; the doseless path did exact matching only. The same
+word resolved or vanished depending on whether a dose followed it:
+
+    "Give amaldifine 5 mg once daily."     -> amlodipine 5 mg YELLOW
+    "She is currently taking amaldifine."  -> nothing
+
+Ward handovers are overwhelmingly doseless - **0 of the 24 held-out gold drugs
+carry a dose at all** - so the one component built for this failure sat idle on
+exactly the speech the product transcribes.
+
+The doseless path now falls back to the reference matcher, at a **stricter
+floor (0.84) than the dosed path's 0.55-0.6**, for a structural reason: there,
+a wrong sound-alike is caught by the dose, because the pack lists levothyroxine
+only in micrograms and `25 mg` rules it out. A doseless mention has no such
+corroboration, so the string carries the whole decision and the bar rises. The
+floor was chosen on the 7 in-sample clips as the lowest value at which the
+dangerous confusions disappear - at 0.80 `condition` matched `chondroitin` and
+`troponin` matched `tiopronin`; at 0.84 only `penicillin -> penicillin g`
+survives, and the allergy spans already claim that one.
+
+A doseless fuzzy row is the weakest evidence this pipeline produces, so it
+stays RED, says what it was repaired from, and carries `raw_token` plus the
+full candidate list for `term_validate`.
+
+**Measured** (same frozen held-out gold, 119 facts):
+
+| arm | in-sample | held-out | drugs | spurious |
+|---|---|---|---|---|
+| `small-int8` | 35/41 | 76.5% -> **79.0%** | 12 -> **15**/24 | 0 |
+| **`medasr` greedy (default)** | 35 -> **36**/41 | 80.7% -> **83.2%** | 11 -> **14**/24 | 0 |
+| `medasr-lm` | 36 -> **37**/41 | 80.7% | 13/24 | 0 |
+
+No precision cost: zero spurious drug rows on any arm, and the extraction
+ceiling is unchanged at 41/41 in-sample and 119/119 held-out.
+
+`medasr-lm` reaching **37/41 in-sample** is the spec's long-standing headline
+number, reproducible for the first time since the label-scheme fix.
+
+**What this does not reach.** Of the 17 drug misses before this change, 9 had a
+recognisable mangled token in the transcript and 8 were absent entirely - the
+decoder never emitted the word, so no post-processing can recover them. One
+recoverable case is still missed on principle: `amaldifine -> amlodipine`
+scores 0.80, below the in-sample floor, and lowering the floor to catch a
+held-out example would be fitting to the test set.
+
+
 ### MedASR becomes the default decoder (English-only scope) (2026-10-05)
 
 Product scope is now **purely English audio**, which settles a decoder choice

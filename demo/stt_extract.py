@@ -1156,6 +1156,17 @@ _LAB_VALUE_AFTER = re.compile(
     r"(?:d[lL]\b|L\b|lit(?:re|er)s?\b|decilit(?:re|er)s?\b)", re.I)
 
 
+# Deliberately stricter than the dosed path's 0.55-0.6 floor. There, a wrong
+# sound-alike is caught by the dose: the pack lists levothyroxine only in
+# micrograms, so `25 mg` rules it out. A doseless mention has no such evidence,
+# so the string has to carry the whole decision and the bar rises. Chosen on
+# the 7 in-sample clips as the lowest floor at which the dangerous confusions
+# disappear - at 0.80, `condition` matched `chondroitin` and `troponin` matched
+# `tiopronin`; at 0.84 only `penicillin` -> `penicillin g` survives, and that
+# one is an allergy mention the allergy spans already claim.
+DOSELESS_FUZZY_FLOOR = 0.84
+
+
 def _reference_doseless(sent, taken, alias_to_canonical, drugs_known):
     """Doseless drug mentions the curated list has never heard of.
 
@@ -1185,6 +1196,20 @@ def _reference_doseless(sent, taken, alias_to_canonical, drugs_known):
                 continue
             rec = drug_reference.lookup(join, block=drug_reference.STOPWORDS,
                                         brands=False)
+            fuzzy = None
+            if not rec:
+                # The sound-alike repair used to run only inside `DRUG_CTX`,
+                # which needs name + number + unit. Ward handovers dictate
+                # drugs without a dose - "she is currently taking amaldifine"
+                # - so the one component built to fix a misheard drug name sat
+                # idle on exactly the speech this product transcribes. Across
+                # the 30-clip corpus, 0 of 24 held-out gold drugs carried a
+                # dose at all.
+                cands = drug_reference.candidates(join, floor=DOSELESS_FUZZY_FLOOR)
+                if not cands:
+                    continue
+                fuzzy = cands
+                rec = {"name": cands[0]["name"]}
             if not rec:
                 continue
             # "calcium 9 mg/dL" is a result, not an order. The dosed path
@@ -1194,8 +1219,11 @@ def _reference_doseless(sent, taken, alias_to_canonical, drugs_known):
             if _LAB_VALUE_AFTER.match(sent, words[i + n - 1][2]):
                 continue
             consumed.update(range(i, i + n))
-            out.append((drug_reference.inn_name(rec["name"]),
-                        words[i][1], words[i + n - 1][2]))
+            # `_chart_name` so the row carries this project's own spelling
+            # where it has one - the pack calls it `amoxycillin`, the mini
+            # list and the gold data call it `amoxicillin`.
+            out.append((_chart_name(rec["name"], drugs_known),
+                        words[i][1], words[i + n - 1][2], join, fuzzy))
     return out
 
 
@@ -1374,7 +1402,7 @@ def extract_entities(text, normalized_en, segments):
                           "confidence": 0.70, "color": "RED",
                           "source_sentence": proof_sent, "negated": False,
                           "note": "no dose dictated - physician must confirm"})
-        for canon, cstart, cend in _reference_doseless(
+        for canon, cstart, cend, heard, fuzzy in _reference_doseless(
                 sent, {d["name"] for d in drugs}, alias_to_canonical, drugs_known):
             if any(d["name"] == canon for d in drugs):
                 continue
@@ -1382,12 +1410,23 @@ def extract_entities(text, normalized_en, segments):
                 continue
             if _drug_negated(sent[:cstart]):
                 continue
-            drugs.append({"name": canon, "dose": None, "unit": None,
-                          "frequency": "", "duration": "",
-                          "confidence": 0.70, "color": "RED",
-                          "source_sentence": proof_sent, "negated": False,
-                          "note": "no dose dictated - physician must confirm "
-                                  "(national drug list, not this pipeline's own)"})
+            note = ("no dose dictated - physician must confirm "
+                    "(national drug list, not this pipeline's own)")
+            row = {"name": canon, "dose": None, "unit": None,
+                   "frequency": "", "duration": "",
+                   "confidence": 0.70, "color": "RED",
+                   "source_sentence": proof_sent, "negated": False}
+            if fuzzy:
+                # A doseless fuzzy match is the weakest evidence this pipeline
+                # produces: a misheard word, no dose to corroborate it, and no
+                # curated alias behind it. It carries the heard token and the
+                # full candidate list so `term_validate` can weigh it, and it
+                # says on the row what it was repaired from.
+                note = (f"fuzzy {heard}->{canon} ({fuzzy[0]['score']:.2f}), "
+                        f"no dose dictated - physician must confirm")
+                row.update(raw_token=heard, candidates=fuzzy, matcher_pick=canon)
+            row["note"] = note
+            drugs.append(row)
         low = sent.lower()
         matched = set()
         for s in SYMPTOMS:
