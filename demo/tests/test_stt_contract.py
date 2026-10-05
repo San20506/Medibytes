@@ -233,3 +233,49 @@ def test_every_extracted_entity_has_deterministic_spans_and_schema_accepts_them(
     invalid["allergies"][0]["end_char"] = -1
     with pytest.raises(ValidationError):
         Draft7Validator(schema).validate(invalid)
+
+
+# ---- medasr is the default decoder, so its failure path is load-bearing ----
+
+def test_medasr_degrades_to_a_real_decoder_not_to_the_mock(monkeypatch):
+    """A missing MedASR must not hand back invented clinical text.
+
+    `_mock_result` returns a fixture transcript carrying vitals and drugs. That
+    is a reasonable last resort for an explicitly-requested backend, but MedASR
+    is now the default, so on any machine without the weights the default path
+    would have produced a chart full of facts nobody dictated. It degrades to
+    faster-whisper first, and says so in the engine string.
+    """
+    import stt_extract
+
+    class Segment:
+        text = " Paracetamol 500 mg once daily. "
+        start, end, avg_logprob, words = 0.0, 2.0, -0.1, ()
+
+    class WhisperModel:
+        model_sha256 = "sha256:model"
+        model_snapshot = "snapshot-123"
+
+        def __init__(self, model, *, device, compute_type):
+            pass
+
+        def transcribe(self, audio, **kwargs):
+            return iter([Segment()]), SimpleNamespace(language="en")
+
+    _fake_faster_whisper(monkeypatch, WhisperModel)
+    monkeypatch.setattr(stt_extract, "transcribe_medasr",
+                        lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("no weights")))
+    result = stt_extract.transcribe("a.wav", job_id="x", model="medasr", strict=False)
+
+    assert result["stt_provenance"]["is_mock"] is False
+    assert "faster-whisper" in result["engine"]
+    assert "medasr unavailable" in result["engine"]
+
+
+def test_medasr_still_raises_under_strict(monkeypatch):
+    import stt_extract
+
+    monkeypatch.setattr(stt_extract, "transcribe_medasr",
+                        lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("no weights")))
+    with pytest.raises(RuntimeError):
+        stt_extract.transcribe("b.wav", job_id="x", model="medasr", strict=True)

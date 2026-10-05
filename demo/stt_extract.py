@@ -498,7 +498,7 @@ def transcribe_medasr(clean_wav, job_id="demo-001", device=None):
             "language": "en", "stt_provenance": provenance}
 
 
-def transcribe(clean_wav, job_id="demo-001", model="small-int8", strict: bool = False):
+def transcribe(clean_wav, job_id="demo-001", model="medasr", strict: bool = False):
     """Transcribe with explicit mock fixtures or strict/fallback real STT."""
     if model == "mock":
         key = job_id if job_id in MOCK_TEXTS else "demo-001"
@@ -511,7 +511,15 @@ def transcribe(clean_wav, job_id="demo-001", model="small-int8", strict: bool = 
         except Exception as exc:
             if strict:
                 raise
-            return _mock_result(clean_wav, job_id, model, exc, "no medasr")
+            # MedASR is the default decoder, so its failure path matters more
+            # than the others': dropping straight to the mock would hand back
+            # invented vitals and drugs that look like a real transcript, on
+            # any machine without the weights. Degrade to a real decoder
+            # instead, and only mock if that is unavailable too.
+            medasr_error = exc
+            model = "small-int8"
+        else:
+            medasr_error = None
     if model == "medasr-lm":
         try:
             from medasr_lm import transcribe_medasr_lm
@@ -575,8 +583,11 @@ def transcribe(clean_wav, job_id="demo-001", model="small-int8", strict: bool = 
             ),
             "is_mock": False,
         }
+        engine = f"faster-whisper:{size}-{_device}-{_compute}"
+        if locals().get("medasr_error") is not None:
+            engine += f" (medasr unavailable: {type(medasr_error).__name__})"
         return {"text": text, "segments": segs,
-                "engine": f"faster-whisper:{size}-{_device}-{_compute}",
+                "engine": engine,
                 "language": getattr(info, "language", "en"),
                 "stt_provenance": provenance}
     except Exception as exc:
@@ -1548,7 +1559,7 @@ def _run_term_validation(ent, validate_terms, ollama_model):
 
 
 def run_stt_extract(
-    clean_wav, job_id="demo-001", use_llm="auto", model="small-int8",
+    clean_wav, job_id="demo-001", use_llm="auto", model="medasr",
     ollama_model="llama3.2:3b", strict: bool = False, validate_terms="auto",
 ):
     stt = transcribe(clean_wav, job_id, model=model, strict=strict)

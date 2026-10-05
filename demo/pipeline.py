@@ -82,7 +82,7 @@ def run_pipeline(
     inp,
     key=None,
     use_llm="auto",
-    model="small-int8",
+    model="medasr",
     template="er_discharge",
     denoiser=BackendId.NONE.value,
     denoiser_config=None,
@@ -185,7 +185,14 @@ def main():
     ap.add_argument("--key", default=None)
     ap.add_argument("--use-llm", action="store_true", help="force LLM-primary extraction (fallback regex)")
     ap.add_argument("--no-llm", action="store_true", help="regex only, skip LLM")
-    ap.add_argument("--model", default="small-int8", help="tiny-int8 (fast) | base-int8 (better) | small-int8 (default, best CPU, required for usable Hindi/Tamil/code-mix) | medasr (google/medasr greedy, English-only medical CTC) | medasr-lm (medasr + kenlm beam search, English-only, best drug names) | medium | large-v3 (GPU if available, else CPU) | mock (instant)")
+    ap.add_argument("--model", default="medasr", help=(
+        "medasr (DEFAULT: google/medasr greedy CTC, English-only, fastest - "
+        "1.7s CPU / 0.2s GPU per 80s clip; falls back to small-int8 if the "
+        "weights are unavailable) | small-int8 (faster-whisper, slower but "
+        "the only option that handles Hindi/Tamil/code-mixed audio) | "
+        "base-int8 | tiny-int8 (faster, English only) | medasr-lm (medasr + "
+        "kenlm beam search - MEASURED WORSE, the shipped LM has no unigram "
+        "set) | medium | large-v3 (GPU if available) | mock (instant)"))
     ap.add_argument("--template", default="er_discharge", help="er_discharge | none")
     ap.add_argument(
         "--denoiser",

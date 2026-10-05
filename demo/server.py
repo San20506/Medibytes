@@ -172,7 +172,7 @@ def health() -> dict[str, Any]:
         "status": "ok",
         "job_root": str(JOB_ROOT),
         "backend_probe": backends,
-        "models": ["mock", "tiny-int8", "base-int8", "small-int8", "medasr"],
+        "models": ["medasr", "small-int8", "base-int8", "tiny-int8", "mock"],
         "jobs": counts,
     }
 
@@ -181,7 +181,7 @@ def health() -> dict[str, Any]:
 async def create_job(
     file: UploadFile = File(...),
     denoiser: str = Form(BackendId.NONE.value),
-    model: str = Form("small-int8"),
+    model: str = Form("medasr"),
     template: str = Form("er_discharge"),
     use_llm: str = Form("auto"),
     denoiser_config: str | None = Form(None),

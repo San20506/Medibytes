@@ -6,6 +6,51 @@ detail (OpenSpec change, evidence directory, or commit).
 
 ## Unreleased
 
+### MedASR becomes the default decoder (English-only scope) (2026-10-05)
+
+Product scope is now **purely English audio**, which settles a decoder choice
+the evidence had been split on.
+
+**Measured on the 23 held-out clips** (119 facts, gold frozen before any run):
+
+| decoder | in-sample | held-out | vitals | drugs | speed / 80s clip |
+|---|---|---|---|---|---|
+| `small-int8` (was default) | 85.4% | 76.5% | 79/95 | 12/24 | ~6-8s CPU |
+| **`medasr` (now default)** | 85.4% | **80.7%** | **85/95** | 11/24 | **1.7s CPU, 0.2s GPU** |
+
+The accuracy gain is **not statistically significant** - CIs [68.1, 83.2] vs
+[72.7, 86.8], and per clip MedASR wins 8, loses 5, ties 10. The honest claim is
+"no worse, and three to thirty times faster". Note the gain is in *vitals*
+(+6), not drug names (-1), which contradicts the spec's reason for preferring
+MedASR.
+
+**Why this was not the default before, and what changed.** MedASR is
+English-only, and on code-mixed audio it destroys exactly what matters: on a
+Hinglish clip it rendered `BP 130 by 80` as "BP aches or teaeth by a seat" and
+`azithromycin 500 mg` as "azithromycin0to mg", so the extractor recovered **no
+drug at all**, where faster-whisper recovered the complete order at GREEN. The
+fuzzy/reference stage cannot rescue that - it repairs a misheard drug *name*,
+and here the *dose* was destroyed, so no row ever forms. `small-int8` remains
+the documented choice for Hindi/Tamil/code-mixed audio and is one flag away.
+
+**The default's failure path was unsafe and is now fixed.** `transcribe`
+dropped straight to `_mock_result` when a backend failed - a fixture transcript
+carrying invented vitals and drugs. Acceptable for an explicitly-requested
+backend; not acceptable for the default, where any machine without the MedASR
+weights would have produced a chart full of facts nobody dictated. The chain is
+now **medasr -> small-int8 -> mock**, and a degraded run says so in the engine
+string (`faster-whisper:small-cpu-int8 (medasr unavailable: ...)`).
+
+Defaults changed in `demo/pipeline.py`, `demo/server.py`, `demo/app.py` and
+`stt_extract.transcribe` / `run_stt_extract`. `medasr-lm` stays off by default:
+it measured **worst** (62.2% held-out) because the shipped LM carries no
+unigram set.
+
+**327 tests pass.** Extraction ceiling unchanged at 41/41 in-sample and 119/119
+held-out. Verified end-to-end through `demo/pipeline.py` with no `--model`
+flag on real audio.
+
+
 ### Held-out evaluation, vitals plausibility, structural multi-word drugs (2026-10-05)
 
 The 30-clip MediBytes dataset arrived complete - 10 clean, 10 medium-noise, 10
