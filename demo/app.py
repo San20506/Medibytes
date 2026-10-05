@@ -268,7 +268,6 @@ def _apply_edits(orig_ej, edits):
 
 def _persist_corrected(job_id, patched, audit_entries):
     """Write corrected entities + re-rendered HTML/DOCX + audit trail. Returns paths."""
-    from fill_template import fill_template as _fill
     # merge audit with any existing trail (never lose history)
     afp = os.path.join(_HERE, "entities", f"{job_id}.audit.json")
     trail = []

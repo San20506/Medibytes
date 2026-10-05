@@ -40,3 +40,6 @@ eval/.cache/
 
 # HTTP backend job tree (uploads + per-job pipeline outputs)
 demo/_server_jobs/
+
+# scratch experiments
+asr-import.py

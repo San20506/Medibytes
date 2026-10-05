@@ -831,9 +831,6 @@ def _drug_name_pattern(alias_to_canonical):
     return re.compile(r"\b(?:%s)\b" % "|".join(re.escape(n) for n in names), re.I)
 
 
-_ALLERGY_NEAR = re.compile(r"allerg(?:y|ies|ic)", re.I)
-
-
 def _allergy_spans(sentence):
     """(start, end) of every substance an allergy pattern actually captures.
 

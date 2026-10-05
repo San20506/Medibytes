@@ -215,11 +215,6 @@ def _array_sha256(audio: np.ndarray) -> str:
     return hashlib.sha256(canonical.tobytes(order="C")).hexdigest()
 
 
-def _pcm16_sha256(audio: np.ndarray) -> str:
-    pcm = (np.clip(np.asarray(audio, dtype=np.float32), -1.0, 1.0) * 32767.0).astype(np.int16)
-    return hashlib.sha256(pcm.tobytes()).hexdigest()
-
-
 def _canonical_wav_sha256(audio: np.ndarray, sample_rate: int = TARGET_SR) -> str:
     """Hash the exact 44-byte-header PCM16 file written by ``_save_wav``."""
     pcm = (np.clip(np.asarray(audio, dtype=np.float32), -1.0, 1.0) * 32767.0).astype(np.int16)

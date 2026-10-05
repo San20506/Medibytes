@@ -21,7 +21,6 @@ import numpy as np
 from stt_extract import (
     MEDASR_MODEL_ID,
     _medasr_segments,
-    _model_attribute,
     _transformers_version,
     medasr_detokenize,
 )

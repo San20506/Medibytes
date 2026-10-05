@@ -26,8 +26,8 @@ Matching rules, fixed here so a later result cannot redefine them:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Mapping, Sequence
+from dataclasses import dataclass
+from typing import Mapping
 
 
 @dataclass(frozen=True)
@@ -220,9 +220,6 @@ def numeric_targets(clip: Clip) -> list[tuple[str, float]]:
     return targets
 
 
-def drug_names(clip: Clip) -> list[str]:
-    return [drug.name for drug in clip.drugs]
-
 
 __all__ = ["Vital", "Drug", "Allergy", "Clip", "CLIPS", "BY_ID",
-           "numeric_targets", "drug_names"]
+           "numeric_targets"]
