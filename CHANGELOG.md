@@ -6,6 +6,151 @@ detail (OpenSpec change, evidence directory, or commit).
 
 ## Unreleased
 
+### Scoreboard precision, spoken-number doses, negated prescriptions (2026-10-05)
+
+Three defects found while auditing the question *"is it 100% accurate?"*. It is
+not. Re-scored with the corrected matcher below, the best reproducible
+configuration is **35/41** on n=7 and the shipped `small-int8` default is also
+35/41. Drug names are the weak axis: **7/11** for medasr and **6/11** for the
+shipped default. The full audit named 21 flaws; these are the first three
+fixed.
+
+**The scoreboard could not go down.** `clinical_eval/score.py` iterated over
+gold facts only — there was no false-positive counter, no precision, no F1.
+Emitting 50 bogus drug rows scored exactly the same as emitting one correct
+one, and dumping the whole 33-name formulary as drug rows took clip 001's drug
+recall from 1/3 to **3/3**. Every arm now also reports spurious vitals, drugs
+and allergies against what it emitted. Two matchers were lenient in the same
+direction and are now strict:
+
+- `_vital_hit` never checked the *kind* of vital. A span reading `respiratory
+  rate 92` scored a gold **pulse** of 92, and one span containing every number
+  in the transcript scored four of clip 001's five vitals. Spans are now
+  classified (`span_kind`) and assigned 1:1, so a span can satisfy at most one
+  gold fact. The classifier lives in the scorer rather than being imported from
+  `demo/`, because a scoreboard should not borrow the judgement of the code it
+  grades.
+- `(?<!\d)98(?!\d)` matched inside `98.6`, so a temperature of 98.6 °F
+  satisfied a gold **SpO2 of 98** — and clip 002 carries both facts.
+
+The C4 ceiling is still **41/41** under the stricter matcher, and the spec's
+hand-counted precision claim is now machine-verified: **zero spurious rows** on
+all 7 clips. One genuine classifier gap surfaced and was fixed on the way: the
+decoder writes glucose as `54 milligrams per decilitre`, with no cue the first
+draft recognised.
+
+**A dose dictated digit by digit was summed.** `_parse_numwords` added a run of
+number words together, so `amoxicillin six two five milligram` charted as
+**13 mg at GREEN 0.96** — a 48× underdose carrying the pipeline's highest
+confidence. A run of single digits is now concatenated (`six two five` → 625).
+Ten through nineteen are excluded by value, so the spoken-hundreds rules
+(`one thirty` → 130, `two fifteen` → 215) are untouched. `one and two` is a
+conjunction rather than a number and is now left alone, so the dose fails to
+parse and the row goes RED instead of inventing either 3 or 12. This also
+recovers a reading that was previously destroyed rather than merely wrong:
+`BP one two zero by eight zero` summed to `3 by 8` and matched no BP pattern.
+
+**A prohibition charted as a prescription.** `neg` was computed per sentence
+and used only for symptoms; the dosed-drug row hardcoded `"negated": False`.
+So `Do not give ibuprofen 400 mg` and `Stop metformin 500 mg` both reached the
+chart as **active GREEN orders**. The doseless path had guarded this all along
+with `_negated_before`, which makes it an inconsistency rather than a choice.
+
+Reusing `neg` directly would have been worse than the bug. Four realistic
+sentences broke the first three drafts, and each one is now a test:
+
+- `Stop amoxicillin 500 mg and start azithromycin 500 mg OD.` — a drug switch,
+  which is about as common as ward dictation gets. Scope now ends at an
+  imperative verb (`give`, `start`, `continue`, `switch to`), so the drug the
+  patient is *now* on is not marked stopped along with the one they came off.
+- `Patient has no fever give paracetamol 500 mg.` — real ASR output has no
+  commas, so the reset cannot depend on punctuation. A verb only starts a
+  fresh order when a negation is not governing it: "do **not** give" stays
+  negated because only an auxiliary separates the two, while "no fever give"
+  has a noun in between and resets.
+- `Stopped metformin but continue insulin 10 U.` — the discontinuation check
+  ignored `_CONTRAST` while the negation check respected it, so the insulin
+  came out stopped. Both are now scoped identically.
+- `Patient stopped smoking and was given paracetamol 500 mg.` — "stopped" is
+  not always about a drug.
+
+`NEG_PAT` also has no word for stopping, so `stop`, `avoid`, `withhold`,
+`hold`, `discontinue`, `omit`, `refused` and `declined` are now recognised.
+Clause splitting separately lost negation across `along with`; clauses now
+carry their offset, so "do not give amoxicillin along with ibuprofen" negates
+both.
+
+**A negated drug is now rendered, not deleted.** This matters more than the
+flag. `fill_template.py` and `coords.py` both build the medication table as
+`[d for d in drugs if not d["negated"]]`, so a negated row appeared **nowhere
+on the document**. Shipping the fix without this would have traded a wrong
+order for a missing one — and a mis-scoped negation would have deleted a real
+prescription silently. Stopped drugs now render as `NOT GIVEN: <drug>`,
+following the existing DENIED mechanism for allergies and symptoms.
+
+**A spoken range is not a two-digit number.** `for two three days` means two
+to three days. Summing gave 5; concatenating would give 23, which is worse.
+Two consecutive ascending digits followed by a unit of time, count or dose are
+left as words, so the value does not parse and the row goes RED rather than
+inventing either reading. `six two five milligram` is three tokens and still
+reaches 625; a diastolic `eight zero` is not consecutive and still reaches 80.
+
+**Verification.**
+
+- **275 tests pass**, up from 210: **24 new** in `clinical_eval/tests/test_score.py`
+  (the harness had none) and **41 new** cases in `demo/tests/test_extract_rules.py`.
+  The tests that pin a *changed* behaviour were each confirmed to fail against
+  the previous implementation; the rest are regression guards for behaviour
+  that had to stay the same.
+- **Before/after on real text, with the old behaviours restored in memory.**
+  All 42 decoded ASR arms, the 7 reference transcripts and every file in
+  `demo/transcripts/` — 55 in total — re-extracted both ways and diffed on
+  (name, dose, unit, colour, negated, duration, frequency) and on vital spans.
+  **Zero rows changed.** The fixes are neutral on every piece of real text
+  available here, which is itself the argument for a held-out set: this corpus
+  contains no digit-by-digit dose and no prohibition, so it cannot exercise
+  two of the three fixes.
+- **The eval was re-scored with the corrected matcher** (`score-mix.json`;
+  the previous run is kept as `score-mix.BEFORE-scorer-precision.json`).
+  Three arms were inflated by the old one:
+
+  | arm | old | **new** | spurious |
+  |---|---|---|---|
+  | C4 extraction ceiling | 41 | **41** | 0 |
+  | none\|medasr | 36 | **35** | 1 vital |
+  | none\|small-int8 *(shipped default)* | 35 | **35** | 0 |
+  | sherpa-gtcrn-simple\|small-int8 | 35 | **34** | 2 vitals |
+  | sherpa-gtcrn-simple\|base-int8 | 26 | **25** | 3 vitals, 1 drug |
+
+  So the best reproducible configuration is **35/41**, not 36/41, and the
+  spec's 37/41 headline rests on an arm whose drivers are no longer on disk
+  *and* on the lenient matcher. C2 ASR fidelity is unchanged by the scorer
+  work: 34/34 numbers and **7/11** drug names for medasr, 34/34 and **5/11**
+  for the shipped `small-int8`.
+
+  The C5 table scores the entities stored at run time, so it measures the
+  corrected *scorer* against the previously decoded output - not the current
+  extractor. The before/after check above is what covers the extractor
+  changes, and it found no difference on the same 42 arms.
+- The C4 ceiling holds at 41/41 **with the polarity check active**, which is
+  the evidence that the negation fix wrongly negates no gold drug.
+- The 6,943-word vocabulary probe holds at 18 false positives, and
+  leave-one-out at 5 wrong-drug-at-YELLOW.
+
+**Scope.** This covers the **dosed** drug path only. The doseless path still
+uses `_negated_before`, which has no word for stopping, so a bare
+`Stop metformin.` with no dose still charts as "no dose dictated - physician
+must confirm"; negated doseless rows are also skipped before they reach
+NOT GIVEN. Reusing `_drug_negated` there is the obvious next change and would
+also close audit flaw #16.
+
+**Still open**, from the same audit: 18 further flaws, including multi-word
+drug names being unreachable (25% of the reference), combination products
+assigning the dose to the minor component, no overdose check (`max_daily_mg`
+is still read by no code), allergens charted as prescriptions, no
+allergy↔prescription cross-check, and Hindi input extracting nothing.
+
+
 ### National drug reference behind the post-processor (2026-10-05)
 
 **The defect.** Drug post-processing resolved misheard medicine names against

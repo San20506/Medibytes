@@ -201,3 +201,189 @@ def test_a_medication_beside_an_allergy_denial_is_still_a_medication():
 
 def test_a_prohibited_drug_is_not_an_order():
     assert _ents("He has not been given ceftriaxone yet.")["drugs"] == []
+
+
+# ---- a prohibition is not a prescription ----
+#
+# `neg` was computed per sentence and used only for symptoms, so the dosed-drug
+# branch hardcoded `negated: False`. The doseless branch had guarded this all
+# along, which is what makes it an inconsistency rather than a design choice.
+# The chart renders its active medication list as `[d for d in drugs if not
+# d["negated"]]`, so the colour and the flag both matter: the flag removes the
+# row from the list, and RED stops a mis-scoped negation deleting a real order
+# in silence.
+
+@pytest.mark.parametrize("sentence, drug", [
+    ("Do not give ibuprofen 400 mg.", "ibuprofen"),
+    ("Please do not give amoxicillin 500 mg.", "amoxicillin"),
+    ("Stop metformin 500 mg.", "metformin"),
+    ("Avoid ibuprofen 400 mg.", "ibuprofen"),
+    ("Withhold metformin 500 mg today.", "metformin"),
+    ("Discontinue metformin 500 mg.", "metformin"),
+    ("Patient refused paracetamol 500 mg.", "paracetamol"),
+    ("She cannot take ibuprofen 400 mg.", "ibuprofen"),
+])
+def test_a_prohibited_or_stopped_drug_is_not_an_active_order(sentence, drug):
+    rows = _ents(sentence)["drugs"]
+    assert [r["name"] for r in rows] == [drug], rows
+    assert rows[0]["negated"] is True
+    assert rows[0]["color"] == "RED"
+    assert rows[0]["confidence"] <= 0.70
+
+
+@pytest.mark.parametrize("sentence", [
+    "Give paracetamol 500 mg BID.",
+    # A denial of something *else* must not cancel the order that follows it.
+    # Commas are deliberately transparent to negation scope so that "no history
+    # of asthma, diabetes, or penicillin allergy" denies all three - which is
+    # exactly what makes these sentences the hard case.
+    "She has no fever, give paracetamol 500 mg.",
+    "No penicillin allergy, give amoxicillin 500 mg.",
+    "No allergies, start azithromycin 500 mg OD.",
+    "Afebrile, continue metformin 500 mg BD.",
+    "Patient denies chest pain. Give paracetamol 650 mg.",
+])
+def test_a_denial_of_something_else_still_prescribes(sentence):
+    rows = _ents(sentence)["drugs"]
+    assert rows, sentence
+    assert rows[0]["negated"] is False
+    assert rows[0]["color"] == "GREEN"
+
+
+def test_negation_keeps_its_reach_across_a_multi_drug_split():
+    # The clause splitter used to hand each clause to the matcher on its own,
+    # so the second drug lost the "not" that governed the whole sentence.
+    rows = _ents("Do not give amoxicillin 500 mg along with ibuprofen 400 mg.")["drugs"]
+    assert {r["name"] for r in rows} == {"amoxicillin", "ibuprofen"}
+    assert all(r["negated"] is True and r["color"] == "RED" for r in rows), rows
+
+
+# ---- spoken digit-by-digit numbers ----
+
+@pytest.mark.parametrize("spoken, digits", [
+    ("six two five", "625"),
+    ("five zero zero", "500"),
+    ("one two zero", "120"),
+    ("eight zero", "80"),
+])
+def test_a_run_of_single_digits_is_concatenated_not_summed(spoken, digits):
+    # `_parse_numwords` summed the run, so "six two five" was 13. Dictating a
+    # strength digit by digit is ordinary, and 13 mg of amoxicillin reached the
+    # chart at GREEN - a 48x underdose at the pipeline's highest confidence.
+    assert numwords_to_digits(spoken) == digits
+
+
+@pytest.mark.parametrize("spoken, digits", [
+    ("five hundred", "500"),
+    ("one thirty", "130"),      # spoken hundreds with the "hundred" dropped
+    ("one ten", "110"),         # ...and the same with a teen remainder
+    ("two fifteen", "215"),
+    ("ninety eight", "98"),
+    ("ninety-eight point six", "98.6"),
+    ("three", "3"),
+])
+def test_the_other_spoken_number_forms_are_unchanged(spoken, digits):
+    assert numwords_to_digits(spoken) == digits
+
+
+def test_a_conjunction_between_digits_is_left_alone():
+    # "and" is in the number vocabulary so that "a hundred and one" works, and
+    # it used to swallow conjunctions between unrelated numbers. Neither 3 nor
+    # 12 is a defensible reading of "one and two", so the words stay as they
+    # are and the dose simply fails to parse.
+    assert numwords_to_digits("one and two") == "one and two"
+    assert numwords_to_digits("a hundred and one") == "a 101"
+
+
+def test_a_digit_by_digit_dose_reaches_the_chart_correctly():
+    rows = _ents("Give amoxicillin six two five milligram BD.")["drugs"]
+    assert (rows[0]["name"], rows[0]["dose"], rows[0]["unit"]) == ("amoxicillin", 625.0, "mg")
+
+
+def test_a_digit_by_digit_blood_pressure_is_recovered():
+    # Previously summed to "3 by 8", which matched no BP pattern at all, so the
+    # reading was lost rather than merely wrong.
+    assert any("120" in s and "80" in s for s in _vitals("BP one two zero by eight zero."))
+
+
+def test_a_spoken_range_is_not_read_as_a_two_digit_number():
+    # "for two three days" is two to three days, which Indian-English
+    # dictation says constantly. Summing gave 5 and concatenating gives 23;
+    # both are wrong and 23 is the more dangerous, so the words are left alone
+    # and the duration simply does not parse.
+    assert numwords_to_digits("for two three days") == "for two three days"
+    assert numwords_to_digits("for three four weeks") == "for three four weeks"
+    assert numwords_to_digits("two three times a day") == "two three times a day"
+    # A dose is as ambiguous, and is left alone for the same reason.
+    assert numwords_to_digits("two three milligram") == "two three milligram"
+
+
+def test_the_range_guard_does_not_block_a_dictated_dose_or_pressure():
+    assert numwords_to_digits("six two five milligram") == "625 milligram"
+    assert numwords_to_digits("five zero zero milligram") == "500 milligram"
+    # A diastolic "eight zero" is not two ascending digits, so it still converts.
+    assert numwords_to_digits("one two zero by eight zero") == "120 by 80"
+
+
+def test_an_ambiguous_two_digit_dose_goes_red_rather_than_guessing():
+    rows = _ents("Give amoxicillin two three milligram BD.")["drugs"]
+    assert rows[0]["dose"] is None
+    assert rows[0]["color"] == "RED"
+
+
+def test_a_stopped_drug_is_rendered_rather_than_silently_removed():
+    # The active medication table skips negated rows, so without a NOT GIVEN
+    # line a "stop metformin" would leave no trace on the document at all -
+    # trading a wrong order for a missing one.
+    from coords import resolve_slots
+    text = "Stop metformin 500 mg, start insulin 10 units."
+    ents = _ents(text)
+    ents["job_id"] = "t"
+    out = resolve_slots(ents, {"job_id": "t", "text": text, "segments": [],
+                               "normalized_en": text})
+    assert any("metformin" in d["text"] for d in out["denied"]), out["denied"]
+    active = [s["text"] for s in out["slots"]
+              if s["key"].startswith("drug_") and s["key"].endswith("_name")]
+    assert "insulin" in active and "metformin" not in active
+
+
+@pytest.mark.parametrize("sentence, drug", [
+    # "Stop taking X" is the commonest way a stop is dictated, and it was the
+    # last hole: the scope reset at `taking` because only `NEG_PAT` counted as
+    # governing a verb, and "stop" is not a negation particle.
+    ("Stop taking metformin 500 mg.", "metformin"),
+    ("Patient refused to take paracetamol 500 mg.", "paracetamol"),
+    ("Avoid giving ibuprofen 400 mg.", "ibuprofen"),
+    ("Patient has not been given paracetamol 500 mg.", "paracetamol"),
+    ("Do not continue metformin 500 mg.", "metformin"),
+])
+def test_a_stop_word_governs_the_verb_that_follows_it(sentence, drug):
+    rows = _ents(sentence)["drugs"]
+    assert [r["name"] for r in rows] == [drug], rows
+    assert rows[0]["negated"] is True and rows[0]["color"] == "RED"
+
+
+@pytest.mark.parametrize("sentence, stopped, active", [
+    ("Stop amoxicillin 500 mg and start azithromycin 500 mg OD.",
+     "amoxicillin", "azithromycin"),
+    ("Stop metformin 500 mg, start insulin 10 units.", "metformin", "insulin"),
+])
+def test_a_drug_switch_stops_only_the_drug_being_switched_from(sentence, stopped, active):
+    # The dangerous direction: marking the new drug stopped removes the
+    # medication the patient is actually on.
+    rows = {r["name"]: r for r in _ents(sentence)["drugs"]}
+    assert rows[stopped]["negated"] is True
+    assert rows[active]["negated"] is False
+
+
+def test_a_stopped_drug_outranks_a_denied_symptom_for_the_last_slot():
+    # The premium renderer caps the DENIED floats at three. A stopped
+    # medication must not be the one that falls off the end.
+    from coords import resolve_slots
+    text = ("No penicillin allergy, no chest pain, no breathlessness. "
+            "Stop metformin 500 mg.")
+    ents = _ents(text)
+    ents["job_id"] = "t"
+    out = resolve_slots(ents, {"job_id": "t", "text": text, "segments": [],
+                               "normalized_en": text})
+    assert any("metformin" in d["text"] for d in out["denied"]), out["denied"]

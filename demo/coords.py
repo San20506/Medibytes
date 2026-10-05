@@ -193,12 +193,20 @@ def resolve_slots(entities, transcript, template_id="er_discharge"):
     # allergies: active line + grey DENIED floats
     act = "; ".join(a.get("text", "") for a in ents.get("allergies", []) if not a.get("negated"))
     slots.append(slot("allergy_line", act or "NIL — none extracted", "YELLOW" if act else "GREEN", ""))
+    # Drugs first, because this list is capped at three and a prohibited
+    # medication outranks a denied symptom for the cap's last slot. A drug
+    # that was stopped or refused is dropped from the active table above, so
+    # losing it here would remove it from the document entirely - the same
+    # failure as charting it as an active order, only harder to notice.
     dy = 154.0
-    for a in [x for x in ents.get("allergies", []) if x.get("negated")]:
-        denied.append({"x": 30, "y": round(dy, 1), "w": 150, "text": f"{a.get('text','')}"[:40]})
-        dy += 2.8
-    for s in [x for x in ents.get("symptoms", []) if x.get("negated")]:
-        denied.append({"x": 30, "y": round(dy, 1), "w": 150, "text": f"{s.get('text','')}"[:40]})
+    texts = [f"NOT GIVEN: {d.get('name','')}"
+             for d in ents.get("drugs", []) if d.get("negated")]
+    texts += [str(a.get("text", ""))
+              for a in ents.get("allergies", []) if a.get("negated")]
+    texts += [str(x.get("text", ""))
+              for x in ents.get("symptoms", []) if x.get("negated")]
+    for text in texts:
+        denied.append({"x": 30, "y": round(dy, 1), "w": 150, "text": text[:40]})
         dy += 2.8
 
     # diagnosis + follow-up + date/sign

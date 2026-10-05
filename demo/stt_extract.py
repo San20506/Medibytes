@@ -123,7 +123,21 @@ _NUMW_RUN = re.compile(r"\b(?:%s)(?:[ -](?:%s))*\b" % ("|".join(_NUMW), "|".join
 
 
 def _parse_numwords(toks):
+    had_and = "and" in toks
     toks = [t for t in toks if t != "and"]
+    # Digit-by-digit dictation, which is how a strength or a BP is read aloud:
+    # "six two five" is 625, not 6+2+5.  Summing a run of single digits turned
+    # `amoxicillin six two five milligram` into a 13 mg row at GREEN - a 48x
+    # underdose carrying the pipeline's highest confidence.  Ten through
+    # nineteen are excluded by the `<= 9` test, so "one ten" -> 110 and
+    # "two fifteen" -> 215 still reach the spoken-hundreds rule below.
+    if len(toks) >= 2 and all(t in _ONES and _ONES[t] <= 9 for t in toks):
+        if had_and:
+            # "one and two" is a conjunction, not a number.  Returning 0 leaves
+            # the original words in place, so the dose fails to parse and the
+            # row goes RED rather than inventing a value either way.
+            return 0
+        return int("".join(str(_ONES[t]) for t in toks))
     # "one thirty" -> 130, and "one ten" / "two fifteen" -> 110 / 215: a spoken
     # three-digit number drops the word "hundred" whether the remainder is a
     # tens word or a teen.
@@ -149,12 +163,32 @@ def _parse_numwords(toks):
 _SPOKEN_POINT = re.compile(r"(?<![\d.])(\d{1,3})\s+point\s+(\d{1,2})\b(?!\s*\d)", re.I)
 
 
+# "for two three days" is a range - two to three days - not the number 23.
+# Indian-English dictation says it constantly. Summing gave 5 and concatenating
+# gives 23; both are wrong, and 23 is the more dangerous of the two, so the
+# words are left alone and the duration simply does not parse.
+# Dose units are included: "two three milligram" is as likely 2-3 mg as it is
+# 23 mg, and no case this fix needs to catch has two consecutive ascending
+# digits before a unit - "six two five" is three tokens, and the "eight zero"
+# of a diastolic is not consecutive.
+_RANGE_TAIL = re.compile(r"^\s*(?:days?|din\b|weeks?|months?|hours?|hrs?|minutes?"
+                         r"|mins?|times?|tablets?|tabs?|doses?"
+                         r"|mg|mcg|g|ml|units?|milligrams?|micrograms?|grams?"
+                         r"|milliliters?)\b", re.I)
+
+
 def numwords_to_digits(text):
     """Dictation words -> digits: five-hundred milligram -> 500 milligram."""
     def rep(m):
         toks = re.split(r"[ -]", m.group(0).lower())
         toks = [t for t in toks if t]
         if not any(t in _ONES or t in _TENS or t == "hundred" for t in toks):
+            return m.group(0)
+        # Two consecutive digits followed by a unit of time or count is a
+        # spoken range, not a two-digit number.
+        if (len(toks) == 2 and all(t in _ONES and _ONES[t] <= 9 for t in toks)
+                and _ONES[toks[1]] == _ONES[toks[0]] + 1
+                and _RANGE_TAIL.match(text[m.end():])):
             return m.group(0)
         v = _parse_numwords(toks)
         return str(v) if v > 0 else m.group(0)
@@ -513,6 +547,71 @@ def _negated_before(prefix):
     return _negated(prefix[markers[-1].end():] if markers else prefix)
 
 
+# An imperative verb starts a new order, and that ends the previous clause's
+# negation.  `_CONTRAST` deliberately lets commas through, because "no history
+# of asthma, diabetes, or penicillin allergy" denies all three - but a denial
+# followed by an order is the common ward sentence, and treating the boundary
+# as transparent cancels a real prescription.  "Stop amoxicillin and start
+# azithromycin" is the case that matters most: a drug switch, where getting
+# this wrong drops the drug the patient is now on.
+_RX_VERB = re.compile(
+    r"\b(?:give|giving|given|gave|start|started|starting|begin|begun|continue"
+    r"|continued|continuing|prescribe|prescribed|add|added|administer"
+    r"|administered|take|takes|taking|switch(?:ed)?\s+to|change(?:d)?\s+to)\b",
+    re.I)
+# Words that may sit between a negation and the verb it governs. "do not give"
+# and "not to give" are negated orders; "no fever give" is a denial followed by
+# one, and the noun in between is what tells them apart.
+_AUX_ONLY = re.compile(r"^[\s,]*(?:(?:do|does|did|to|be|been|being|is|are|was"
+                       r"|were|should|shall|must|will|would|can|could|may"
+                       r"|please|kindly)[\s,]+)*$", re.I)
+# Stopping a drug without a negation particle. `NEG_PAT` has no "stop", so
+# "stop metformin 500 mg" charted as an active GREEN order.
+_DISCONTINUE = re.compile(
+    r"\b(?:stop|stopped|stopping|avoid|avoided|withhold|withheld|hold|held"
+    r"|discontinue|discontinued|omit|omitted|cease|ceased"
+    r"|refus(?:e|ed|ing)|declin(?:e|ed|ing))\b", re.I)
+
+
+def _order_scope(prefix):
+    """`prefix` trimmed to the current order, i.e. after the last fresh verb.
+
+    A verb only starts a *fresh* order when a negation is not governing it, so
+    the scan skips any verb whose negation sits immediately before it with
+    nothing but an auxiliary between.  That keeps "do not give X" inside the
+    negation while letting "...no fever, give X" out of it.
+    """
+    cut = 0
+    for m in _RX_VERB.finditer(prefix):
+        # Either kind of stop word can govern the verb.  Checking only
+        # `NEG_PAT` left the commonest phrasing of all wide open: in "stop
+        # taking metformin 500 mg" the verb is `taking`, no negation particle
+        # precedes it, so the scope reset past "stop" and the row charted as an
+        # active GREEN order.
+        before = prefix[:m.start()]
+        stops = list(NEG_PAT.finditer(before)) + list(_DISCONTINUE.finditer(before))
+        last = max((x.end() for x in stops), default=None)
+        if last is None or not _AUX_ONLY.match(prefix[last:m.start()]):
+            cut = m.end()
+    return prefix[cut:]
+
+
+def _drug_negated(prefix):
+    """Is a drug at the end of `prefix` prohibited, stopped or refused?
+
+    Two sources, both scoped the same way - to the current order, and then to
+    the text after the last contrast marker.  Scoping them alike is the point:
+    an earlier draft ran the discontinuation check over the whole prefix while
+    the negation check respected contrast, so "stopped metformin but continue
+    insulin 10 U" marked the insulin stopped.
+    """
+    scope = _order_scope(prefix)
+    markers = list(_CONTRAST.finditer(scope))
+    if markers:
+        scope = scope[markers[-1].end():]
+    return _negated(scope) or bool(_DISCONTINUE.search(scope))
+
+
 def _prefer_dosed(drugs):
     """One row per drug, and the dosed row wins.
 
@@ -823,6 +922,21 @@ def _reference_only_row(token, drugs_known=frozenset()):
     return _chart_name(name, drugs_known), rec
 
 
+def _split_clauses(sent):
+    """Multi-drug clauses as `(text, offset)`, offset measured in `sent`.
+
+    The offset is what lets a negation keep its reach across the split: "do not
+    give amoxicillin along with ibuprofen" denies both drugs, and a clause
+    examined on its own would have lost the "not" that governs it.
+    """
+    out, at = [], 0
+    for m in DRUG_SPLIT_PAT.finditer(sent):
+        out.append((sent[at:m.start()], at))
+        at = m.end()
+    out.append((sent[at:], at))
+    return out
+
+
 def extract_entities(text, normalized_en, segments):
     """Stage 4 regex core. Returns demo entities_json."""
     drugs_known = {d["name"].lower() for d in _load_drug_list()}
@@ -851,8 +965,8 @@ def extract_entities(text, normalized_en, segments):
         allergy_spans = _allergy_spans(sent)
         # multi-drug split: "amox ... along with ibuprofen ..." -> separate clauses
         # so the second drug's dose/freq is not swallowed by the first row's duration window
-        drug_clauses = DRUG_SPLIT_PAT.split(sent) if DRUG_SPLIT_PAT.search(sent) else [sent]
-        for clause in drug_clauses:
+        drug_clauses = _split_clauses(sent)
+        for clause, clause_at in drug_clauses:
             for m in DRUG_CTX.finditer(clause):
                 if _is_lab_concentration(clause, m):
                     continue
@@ -922,10 +1036,24 @@ def extract_entities(text, normalized_en, segments):
                 if dose_red:
                     fuzzy_note = f"{fuzzy_note}; {dose_red}".strip("; ")
                     conf, color = 0.70, "RED"
+                # A prohibition is not a prescription. `neg` was computed for
+                # this sentence and used only for symptoms, so "do not give
+                # ibuprofen 400 mg" and "stop metformin 500 mg" both charted as
+                # active GREEN orders. The doseless path already guards this
+                # with `_negated_before`; the dosed path simply never did.
+                # Scope is the same prefix test, so "she has no fever, give
+                # paracetamol 500 mg" still prescribes.
+                negated = _drug_negated(sent[:clause_at + m.start("name")])
+                if negated:
+                    # The row leaves the active medication list and is rendered
+                    # under NOT GIVEN instead, so a mis-scoped negation is
+                    # visible as a wrong entry there rather than as an order
+                    # that simply vanished. RED marks it for review either way.
+                    conf, color = min(conf, 0.70), "RED"
                 drugs.append({"name": canon or rawm, "dose": dose, "unit": unit,
                               "frequency": freq, "duration": dur,
                               "confidence": conf, "color": color,
-                              "source_sentence": proof_sent, "negated": False,
+                              "source_sentence": proof_sent, "negated": negated,
                               **({"note": fuzzy_note} if fuzzy_note else {}),
                               # the validation stage needs the word that was
                               # actually heard and every term it could have been,

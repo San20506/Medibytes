@@ -49,7 +49,13 @@ def _number_present(text: str, value: float) -> bool:
     haystack = numwords_to_digits(text)
     if float(value).is_integer():
         integral = str(int(value))
-        return re.search(rf"(?<!\d){re.escape(integral)}(?!\d)", haystack) is not None
+        # `(?!\d)` alone lets a decimal satisfy an integer: a temperature span
+        # reading "98.6 degrees Fahrenheit" scored a gold SpO2 of 98, and clip
+        # 002 carries both facts, so the vitals total was inflated by a
+        # collision between two unrelated readings. A digit after the point is
+        # a different number, not this one.
+        return re.search(rf"(?<!\d){re.escape(integral)}(?!\d)(?!\.\d)",
+                         haystack) is not None
     whole, frac = f"{value:.10g}".split(".")
     patterns = (
         rf"(?<!\d){re.escape(whole)}\.{re.escape(frac)}(?!\d)",
@@ -71,22 +77,59 @@ def _extracted_drug(entities: Mapping[str, Any], drug: gold.Drug) -> dict[str, A
     return None
 
 
-def _vital_hit(entities: Mapping[str, Any], vital: gold.Vital) -> bool:
-    """Does any extracted vital string carry this gold value?
+# Which gold kind an emitted vital span is talking about. The extractor emits
+# untyped spans, so without this the scorer compares numbers alone - and a span
+# reading "respiratory rate 92" scored a gold *pulse* of 92 as a hit. Worse, a
+# single span containing every number in the transcript scored four of clip
+# 001's five vitals. Deliberately written here rather than imported from
+# `demo/`: the scorer should not borrow the judgement of the code it grades.
+_KIND_CUES: tuple[tuple[str, str], ...] = (
+    ("bp", r"\bBP\b|blood\s*pressure|\d+\s*(?:by|/|over)\s*\d+"),
+    ("spo2", r"spo2|sp02|o2\s*sat|oxygen\s*sat|saturation|%|percent"),
+    ("temp_f", r"temp|fahrenheit|celsius|degree|°"),
+    ("rr", r"respiratory\s*rate|resp\b|respiration|breathing\s*rate"),
+    ("pulse", r"pulse|heart\s*rate|\bHR\b"),
+    # The concentration units are a cue in their own right: the decoder writes
+    # "54 milligrams per decilitre" with no word "glucose" anywhere in the span.
+    ("glucose", r"glucose|sugar|BGL|RBS|CBG|mg\s*/\s*d[lL]|mmol"
+                r"|milligrams?\s+per\s+decilit(?:re|er)"
+                r"|millimoles?\s+per\s+lit(?:re|er)"),
+)
 
-    The extractor emits vitals as raw spans, not typed fields, so the check is
-    value-level: the span must contain the number (both numbers, for a BP pair).
+
+def span_kind(text: str) -> str | None:
+    """The gold vital kind this span reports, or None if it names none.
+
+    Order matters: `respiratory rate` is tested before `pulse` because "rate"
+    appears in both cues, and a BP pair is tested first because "130/80"
+    carries no word cue at all.
     """
+    for kind, pattern in _KIND_CUES:
+        if re.search(pattern, text, re.I):
+            return kind
+    return None
 
-    spans = [str(item.get("text", "")) for item in entities.get("vitals", []) or []]
-    if not spans:
-        return False
-    if vital.kind == "bp":
-        return any(
-            _number_present(s, vital.systolic) and _number_present(s, vital.diastolic)
-            for s in spans
-        )
-    return any(_number_present(s, vital.value) for s in spans)
+
+def _vital_candidates(entities: Mapping[str, Any], vital: gold.Vital) -> list[int]:
+    """Indices of emitted spans that report this gold vital, value and kind."""
+    out = []
+    for i, item in enumerate(entities.get("vitals", []) or []):
+        span = str(item.get("text", ""))
+        if span_kind(span) != vital.kind:
+            continue
+        if vital.kind == "bp":
+            ok = (_number_present(span, vital.systolic)
+                  and _number_present(span, vital.diastolic))
+        else:
+            ok = _number_present(span, vital.value)
+        if ok:
+            out.append(i)
+    return out
+
+
+def _vital_hit(entities: Mapping[str, Any], vital: gold.Vital) -> bool:
+    """Does any extracted vital span report this gold fact? (type and value)"""
+    return bool(_vital_candidates(entities, vital))
 
 
 def _allergy_polarity(entities: Mapping[str, Any], allergy: gold.Allergy) -> str:
@@ -99,21 +142,71 @@ def _allergy_polarity(entities: Mapping[str, Any], allergy: gold.Allergy) -> str
     return "missing"
 
 
+def _assign_vitals(clip: gold.Clip, entities: Mapping[str, Any]) -> tuple[list[int | None], set[int]]:
+    """One emitted span per gold vital, and the span indices nothing claimed.
+
+    Without consumption the scorer asks `any()` per gold fact, so one span can
+    satisfy several gold vitals at once and a transcript-sized blob scores
+    them all. Assignment is greedy over the scarcest gold fact first, which is
+    exact whenever candidate sets nest and good enough for 5 facts a clip.
+    """
+    cands = {i: _vital_candidates(entities, v) for i, v in enumerate(clip.vitals)}
+    taken: dict[int, int] = {}
+    for gi in sorted(cands, key=lambda i: len(cands[i])):
+        for si in cands[gi]:
+            if si not in taken.values():
+                taken[gi] = si
+                break
+    n = len(entities.get("vitals", []) or [])
+    return ([taken.get(i) for i in range(len(clip.vitals))],
+            {i for i in range(n) if i not in taken.values()})
+
+
+def _spurious_drugs(clip: gold.Clip, entities: Mapping[str, Any]) -> list[str]:
+    """Emitted drug rows that correspond to no gold drug.
+
+    This is the half of the picture the harness never had: every total it
+    reports is `hit / gold_total`, so emitting the entire 33-name formulary
+    scored full drug recall and nothing counted against it.
+    """
+    known = {d.name.lower() for d in clip.drugs}
+    for d in clip.drugs:
+        known.update(a.lower() for a in (d.aliases or ()))
+    return [str(item.get("name", "")) for item in entities.get("drugs", []) or []
+            if str(item.get("name", "")).lower() not in known]
+
+
+def _spurious_allergies(clip: gold.Clip, entities: Mapping[str, Any]) -> list[str]:
+    known = {a.substance.lower() for a in clip.allergies}
+    return [str(item.get("text", "")) for item in entities.get("allergies", []) or []
+            if str(item.get("text", "")).lower() not in known]
+
+
 def _score_entities(clip: gold.Clip, entities: Mapping[str, Any]) -> dict[str, Any]:
-    vitals = [(f"{v.kind}{'_'+v.note if v.note else ''}", _vital_hit(entities, v))
-              for v in clip.vitals]
+    assigned, unclaimed = _assign_vitals(clip, entities)
+    vitals = [(f"{v.kind}{'_'+v.note if v.note else ''}", assigned[i] is not None)
+              for i, v in enumerate(clip.vitals)]
+    extra_drugs = _spurious_drugs(clip, entities)
+    extra_allergies = _spurious_allergies(clip, entities)
     drugs = []
     for drug in clip.drugs:
         found = _extracted_drug(entities, drug)
+        # Polarity is part of identity for a prescription. `_extracted_drug`
+        # matches on name alone, so a row the extractor marked "not given"
+        # still counted as finding an active gold drug - which left the
+        # scoreboard blind to the one failure the negation fix can introduce.
+        polarity_ok = bool(found) and bool(found.get("negated", False)) == drug.negated
         dose_ok = None
         if drug.dose is not None:
             dose_ok = bool(
                 found
+                and polarity_ok
                 and found.get("dose") is not None
                 and float(found["dose"]) == drug.dose
                 and str(found.get("unit") or "").lower() == (drug.unit or "").lower()
             )
         drugs.append({"name": drug.name, "found": found is not None,
+                      "polarity_ok": polarity_ok if found else None,
                       "dose_expected": drug.dose, "dose_ok": dose_ok})
     allergies = [{"substance": a.substance, "gold_negated": a.negated,
                   "outcome": _allergy_polarity(entities, a)} for a in clip.allergies]
@@ -122,13 +215,24 @@ def _score_entities(clip: gold.Clip, entities: Mapping[str, Any]) -> dict[str, A
         "vitals_hit": sum(1 for _, ok in vitals if ok),
         "vitals_total": len(vitals),
         "drugs": drugs,
-        "drugs_hit": sum(1 for d in drugs if d["found"]),
+        "drugs_hit": sum(1 for d in drugs if d["found"] and d["polarity_ok"]),
+        "drugs_wrong_polarity": sum(1 for d in drugs
+                                    if d["found"] and not d["polarity_ok"]),
         "drugs_total": len(drugs),
         "doses_hit": sum(1 for d in drugs if d["dose_ok"]),
         "doses_total": sum(1 for d in drugs if d["dose_expected"] is not None),
         "allergies": allergies,
         "allergies_correct": sum(1 for a in allergies if a["outcome"] == "correct"),
         "allergies_total": len(allergies),
+        # Precision. Recall alone is gameable: before these counters existed,
+        # dumping every formulary name as a drug row scored 3/3 on clip 001.
+        "vitals_spurious": len(unclaimed),
+        "vitals_emitted": len(entities.get("vitals", []) or []),
+        "drugs_spurious": len(extra_drugs),
+        "drugs_spurious_names": extra_drugs,
+        "drugs_emitted": len(entities.get("drugs", []) or []),
+        "allergies_spurious": len(extra_allergies),
+        "allergies_emitted": len(entities.get("allergies", []) or []),
     }
 
 
@@ -192,7 +296,12 @@ def score(data_root: Path, *, channel: str) -> dict[str, Any]:
                                      "stt_seconds": arm["stt"]["seconds"]}
         report["per_clip"][clip_id] = per_clip
 
-    keys_e = ("vitals_hit", "vitals_total", "drugs_hit", "drugs_total",
+    # Spurious counts ride alongside the hit counts so every arm reports
+    # precision as well as recall.
+    keys_e = ("drugs_wrong_polarity",
+              "vitals_spurious", "vitals_emitted", "drugs_spurious",
+              "drugs_emitted", "allergies_spurious", "allergies_emitted",
+              "vitals_hit", "vitals_total", "drugs_hit", "drugs_total",
               "doses_hit", "doses_total", "allergies_correct", "allergies_total")
     report["components"]["C4_extraction_ceiling"] = _totals(ceiling_rows, *keys_e)
     report["components"]["C2_asr_fidelity"] = {
@@ -220,6 +329,21 @@ def score(data_root: Path, *, channel: str) -> dict[str, Any]:
     out.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     report["output"] = str(out)
     return report
+
+
+def _spurious_line(row: Mapping[str, Any]) -> str:
+    """Rows emitted that matched no gold fact - the precision half.
+
+    Printed on every arm rather than only when non-zero, so a regression that
+    starts emitting junk is visible as a number changing rather than as a line
+    appearing.
+    """
+    return ("spurious: vitals {vitals_spurious}/{vitals_emitted} "
+            "drugs {drugs_spurious}/{drugs_emitted} "
+            "allergies {allergies_spurious}/{allergies_emitted} emitted"
+            ).format(**{k: row.get(k, 0) for k in (
+                "vitals_spurious", "vitals_emitted", "drugs_spurious",
+                "drugs_emitted", "allergies_spurious", "allergies_emitted")})
 
 
 def _pct(hit: int, total: int) -> str:
@@ -255,6 +379,7 @@ def main(argv: Sequence[str] | None = None) -> int:
           f" drugs {_pct(c4['drugs_hit'], c4['drugs_total']):<14}"
           f" doses {_pct(c4['doses_hit'], c4['doses_total']):<12}"
           f" allergy polarity {_pct(c4['allergies_correct'], c4['allergies_total'])}")
+    print(f"  {_spurious_line(c4)}")
 
     print("\nC5 end to end (audio in, entities out)")
     for key, row in report["components"]["C5_end_to_end"].items():
@@ -262,6 +387,7 @@ def main(argv: Sequence[str] | None = None) -> int:
               f" drugs {_pct(row['drugs_hit'], row['drugs_total']):<14}"
               f" doses {_pct(row['doses_hit'], row['doses_total']):<12}"
               f" allergy {_pct(row['allergies_correct'], row['allergies_total'])}")
+        print(f"  {'':<34} {_spurious_line(row)}")
     print(f"\nwrote {report['output']}")
     return 0
 

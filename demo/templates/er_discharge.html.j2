@@ -47,6 +47,7 @@ th,td{border:1px solid #ccc;padding:6px;text-align:left;font-size:14px}
 {% else %}<div>None extracted.</div>{% endif %}
 {% for a in allergies_denied %}<div><span class="badge DENIED">DENIED</span> {{ a.text }} - "{{ a.proof }}" excluded</div>{% endfor %}
 {% for s in symptoms_denied %}<div><span class="badge DENIED">DENIED symptom excluded</span> {{ s.text }} - "{{ s.proof }}"</div>{% endfor %}
+{% for d in drugs_denied %}<div><span class="badge DENIED">NOT GIVEN</span> {{ d.text }} - "{{ d.proof }}" not an active order</div>{% endfor %}
 </div>
 
 <div class="section"><h3>Diagnosis (ICD-10)</h3>

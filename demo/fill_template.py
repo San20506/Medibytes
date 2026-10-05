@@ -91,6 +91,10 @@ def fill_template(entities_json, transcript_json, template_id="er_discharge"):
                         for a in ents.get("allergies", []) if a.get("negated")]
     symptoms_denied = [{"text": s.get("text", ""), "proof": s.get("source_sentence", "")}
                        for s in ents.get("symptoms", []) if s.get("negated")]
+    # Prohibited, stopped and refused drugs. The active table above skips them,
+    # so without this line a "stop metformin 500 mg" leaves no trace at all.
+    drugs_denied = [{"text": d.get("name", ""), "proof": d.get("source_sentence", "")}
+                    for d in ents.get("drugs", []) if d.get("negated")]
 
     ctx = {"job_id": ents.get("job_id", transcript_json.get("job_id", "")),
            "language": transcript_json.get("language", ""),
@@ -99,7 +103,7 @@ def fill_template(entities_json, transcript_json, template_id="er_discharge"):
            "chief_complaint": chief, "hpi": transcript_json.get("text", "")[:500],
            "drugs": drugs, "vitals": vitals, "unmapped": unmapped,
            "allergies_active": allergies_active, "allergies_denied": allergies_denied,
-           "symptoms_denied": symptoms_denied}
+           "symptoms_denied": symptoms_denied, "drugs_denied": drugs_denied}
     html = tpl.render(**ctx)
 
     # DOCX fallback mirror (minimal styling)
@@ -136,6 +140,13 @@ def fill_template(entities_json, transcript_json, template_id="er_discharge"):
         doc.add_paragraph(allergies_active or "None extracted.")
         for a in allergies_denied:
             doc.add_paragraph(f"DENIED: {a['text']} - {a['proof']}")
+        # Stopped, prohibited and refused drugs. The medication table above
+        # skips them, so without this the .docx - which is what gets handed
+        # over - carries no record that a drug was discontinued.
+        if drugs_denied:
+            doc.add_heading("Not given / stopped", 2)
+            for d in drugs_denied:
+                doc.add_paragraph(f"NOT GIVEN: {d['text']} - {d['proof']}")
         doc.add_heading("Diagnosis (ICD-10)", 2)
         doc.add_paragraph("NIL — [PHYSICIAN TO CONFIRM]")
         doc.add_paragraph("Demo - not for clinical use.")
