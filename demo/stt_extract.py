@@ -583,6 +583,246 @@ def _annotate_entity_spans(entities, normalized_en):
 
 
 
+def _fuzzy_candidates(token, drugs_known, alias_to_canonical, floor, limit=5, band=0.08):
+    """Every canonical drug a misheard token could plausibly be, best first.
+
+    The matcher used to keep only difflib's winner, which threw away exactly the
+    information a validator needs: whether the runner-up was a near tie.
+    Sound-alike pairs are the dangerous case, so candidates within ``band`` of
+    the best score are kept even when they sit under ``floor`` - a tie that the
+    validator must see rather than a match it should act on.  Ordering is
+    ``(-score, name)`` so it does not depend on set iteration order, which the
+    previous loop did.
+    """
+    import difflib
+    vocab = sorted(set(drugs_known) | set(alias_to_canonical))
+    scored = sorted(((difflib.SequenceMatcher(None, token, known).ratio(), known)
+                     for known in vocab), key=lambda pair: (-pair[0], pair[1]))
+    if not scored or scored[0][0] < floor:
+        return []
+    cutoff = scored[0][0] - band  # deliberately not clamped to `floor`
+    out, seen = [], set()
+    for score, known in scored:
+        if score < cutoff:
+            break
+        name = alias_to_canonical.get(known, known)
+        if name in seen:
+            continue
+        seen.add(name)
+        out.append({"name": name, "score": round(score, 3), "matched_alias": known})
+        if len(out) == limit:
+            break
+    return out
+
+
+# How far a national-reference name must out-score the best curated mini-list
+# candidate before it is allowed to lead the row.  A guard against cheap
+# high scores in a 74k-name table, not a measured threshold: it sits above the
+# 0.05 that made `oxacillin` outrank `amoxicillin` and below the 0.11 that
+# makes `hydroxyzine` the clear answer over `levothyroxine`.
+REFERENCE_MARGIN = 0.08
+
+
+# "glucose 180 mg/dL" is a lab result, not a prescription, but `DRUG_CTX`'s
+# `\b` after the unit matches happily before the slash and puts the analyte in
+# the drug-name slot.  The mini list used to drop those rows by not recognising
+# `glucose`; the national reference does recognise it, and would file four
+# false medicines off one line of bloodwork.  A dose is an amount, a lab value
+# is a concentration, and `per decilitre` or `per litre` is what tells them
+# apart - `mg/ml` and `mg/kg` stay, because those really are how drugs are
+# ordered.
+_LAB_DENOM = re.compile(r"\s*(?:/|per\s+)\s*(?:d[lL]\b|L\b|lit(?:re|er)s?\b"
+                        r"|decilit(?:re|er)s?\b|cu\s*mm\b|mm3\b)")
+
+
+def _is_lab_concentration(text, match):
+    """True when the matched `<word> <num> <unit>` is a lab value, not a dose."""
+    return bool(_LAB_DENOM.match(text, match.end("unit")))
+
+
+def _demote_implausible(candidates, dose, unit):
+    """Re-rank candidates the pack says this dose cannot belong to.
+
+    Demoted rather than deleted: the pack's strength table is a record of what
+    is marketed, not a statement of every dose a clinician may write, so a
+    candidate it cannot account for drops to the back of the queue instead of
+    vanishing.  The ordering is what reaches the chart, so moving the
+    implausible ones down is enough to stop them leading a row, while the
+    validator still sees them.
+    """
+    try:
+        import drug_reference
+    except ImportError:
+        return candidates, [], False
+    ruled = []
+    for c in candidates:
+        ref = c.get("reference") or {}
+        rec = {"units": ref.get("units", []), "mass_mg": ref.get("mass_mg")}
+        if (drug_reference.unit_fits(rec, unit) is False
+                or drug_reference.dose_conflicts(rec, dose, unit)):
+            c["dose_implausible"] = True
+            ruled.append(c["name"])
+    all_bad = bool(ruled) and len(ruled) == len(candidates)
+    if not ruled or all_bad:
+        # Nothing to demote, or everything is implausible - reordering a
+        # uniformly doubtful shortlist would only hide that fact.
+        return candidates, ruled, all_bad
+    candidates = sorted(candidates, key=lambda c: (bool(c.get("dose_implausible")),))
+    return candidates, ruled, False
+
+
+def _ref_block(rec):
+    """The pack's facts about one drug, as they travel on a candidate row.
+
+    `mass_mg` is the pair the dose check reads, so it has to survive the trip:
+    without it every candidate looks like one the pack has no opinion on, and
+    the check silently passes everything.
+    """
+    return {"kind": rec["kind"], "name": rec["name"],
+            "substances": rec.get("substances", []),
+            "units": rec.get("units", []),
+            "mass_mg": rec.get("mass_mg"),
+            "forms": rec.get("forms", []),
+            "strengths": rec.get("strengths", [])[:6]}
+
+
+def _reference_candidates(token, mini_candidates, drugs_known=frozenset()):
+    """Merge the national drug reference into the mini-list's candidate set.
+
+    The mini list is 33 medicines, so its top scorer is "the nearest of 33
+    strings" - right for `asitromaisin`, wrong for `hydroxazine`, where the
+    real drug is simply not in the list and `levothyroxine` is merely the
+    closest thing that is.  The reference supplies the missing referent.
+
+    The two matchers are not equally trustworthy and are not merged as equals.
+    The mini list is curated: its aliases are mishearings someone observed and
+    wrote down, and it is the vocabulary this project's gold data is written
+    in.  The reference is raw string proximity over 74k names, where a
+    near-perfect score is cheap - `moxacillin` scores 0.95 against `oxacillin`
+    and 0.90 against the mini list's `amoxicillin`, and the higher number is
+    the wrong antibiotic.  So a reference name takes the lead only when it
+    beats the best mini-list candidate by `REFERENCE_MARGIN`, which
+    `hydroxazine -> hydroxyzine` (0.91 against levothyroxine's 0.80) clears and
+    `moxacillin -> oxacillin` does not.
+
+    Losing that contest costs a candidate nothing but first place: it stays in
+    the shortlist, so `term_validate` still sees both and can rule on which
+    drug the sentence is about.  Scores are left as each matcher produced them
+    so the tie rule still sees the real spread.
+    """
+    try:
+        import drug_reference
+    except ImportError:
+        return mini_candidates
+    if not drug_reference.available():
+        return mini_candidates
+    # Enrich the mini list's own candidates first. They are the ones most
+    # likely to be wrong in the dangerous way - `levothyroxine` reached the
+    # shortlist because it is the nearest of 33 strings - and without the
+    # pack's units attached to them the unit check downstream has nothing to
+    # test and silently passes everything.
+    out = []
+    for c in mini_candidates:
+        rec = drug_reference.lookup(c["name"])
+        out.append({**c, "source": "mini",
+                    **({"reference": _ref_block(rec)} if rec else {})})
+    # Keyed on substances as well as names so a bridged INN spelling cannot
+    # arrive as a rival of the mini list's own entry for the same molecule -
+    # two names for one drug would otherwise read as a tie.
+    known = {c["name"].lower() for c in out}
+    for c in out:
+        known.update(x.lower() for x in (c.get("reference") or {}).get("substances", []))
+    for rec in drug_reference.candidates(token):
+        # A reference brand resolves to its generic where the mini list already
+        # knows that generic, so `azee` does not arrive as a rival of
+        # `azithromycin`.
+        name = _chart_name(rec["name"], drugs_known)
+        for sub in rec.get("substances", []):
+            if _chart_name(sub, drugs_known) in known:
+                name = _chart_name(sub, drugs_known)
+                break
+        if name.lower() in known:
+            continue
+        known.add(name.lower())
+        out.append({"name": name, "score": rec["score"],
+                    "matched_alias": rec["matched_name"], "source": "reference",
+                    "reference": _ref_block(rec)})
+    # Rank mini-list candidates first among themselves, then let a reference
+    # name jump the queue only on a decisive margin.
+    mini_names = {c["name"].lower() for c in mini_candidates}
+    best_mini = max((c["score"] for c in out if c["name"].lower() in mini_names),
+                    default=None)
+
+    def rank(c):
+        from_mini = c["name"].lower() in mini_names
+        if from_mini or best_mini is None:
+            promoted = from_mini
+        else:
+            promoted = c["score"] >= best_mini + REFERENCE_MARGIN
+        return (0 if promoted else 1, -c["score"], c["name"])
+
+    out.sort(key=rank)
+    return out[:6]
+
+
+def _chart_name(name, drugs_known):
+    """The spelling this project charts a pack name under.
+
+    Two authorities, in order.  The mini list wins outright: it is this
+    project's own vocabulary and its gold data is written in it, so a pack
+    name it already carries is charted exactly as it carries it - `furosemide`
+    stays `furosemide` and is not rewritten to `frusemide` on the strength of
+    a synonym table.  Only for a drug the mini list has never heard of does
+    the INN bridge decide, which is what keeps a `Crocin` tablet from charting
+    as `acetaminophen`.
+    """
+    n = str(name or "").strip().lower()
+    if n in drugs_known:
+        return n
+    try:
+        import drug_reference
+    except ImportError:
+        return n
+    return drug_reference.inn_name(n)
+
+
+def _reference_only_row(token, drugs_known=frozenset()):
+    """An exact reference hit for a token the mini list has never heard of.
+
+    The matcher used to drop these: no mini-list hit and no fuzzy match above
+    the floor meant `continue`, and a real medicine dictated perfectly
+    vanished from the chart because a 33-entry demo list did not contain it.
+    A name the national pack lists exactly is a medicine, so the row is
+    emitted - YELLOW rather than GREEN, because it reached the chart through
+    a list this pipeline has not curated and nobody has reviewed the match.
+    """
+    try:
+        import drug_reference
+    except ImportError:
+        return None
+    # The exact-hit path gets the same gate as the fuzzy one. Without it a
+    # word like `level` or `din` - both registered Indian brands - becomes a
+    # medicine the moment a dose follows it.
+    # Substances only. A brand name that happens to be an ordinary English
+    # word must not become a medicine just because a dose follows it, and 161
+    # of the English words in this project's own ASR output are brands.
+    rec = drug_reference.lookup(token, block=drug_reference.STOPWORDS, brands=False)
+    if not rec:
+        return None
+    # A brand resolves to its single generic; a multi-substance combination
+    # keeps the brand name, since no one generic names it.
+    subs = rec.get("substances", [])
+    name = subs[0] if rec["kind"] == "brand" and len(subs) == 1 else rec["name"]
+    # The pack is named in USAN and Indian charts are written in INN, so a
+    # clinician who dictated `frusemide` must not read `furosemide` back off
+    # the note. The spoken spelling is the one that goes on the chart; the
+    # pack's own name is kept in the reference block for traceability.
+    t = str(token).strip().lower()
+    if t != name and drug_reference.load()["aliases"].get(t) == name:
+        name = t
+    return _chart_name(name, drugs_known), rec
+
+
 def extract_entities(text, normalized_en, segments):
     """Stage 4 regex core. Returns demo entities_json."""
     drugs_known = {d["name"].lower() for d in _load_drug_list()}
@@ -614,22 +854,31 @@ def extract_entities(text, normalized_en, segments):
         drug_clauses = DRUG_SPLIT_PAT.split(sent) if DRUG_SPLIT_PAT.search(sent) else [sent]
         for clause in drug_clauses:
             for m in DRUG_CTX.finditer(clause):
+                if _is_lab_concentration(clause, m):
+                    continue
                 rawm = m.group("name").lower()
                 canon = alias_to_canonical.get(rawm)
-                fuzzy_note = ""
+                fuzzy_note, candidates = "", []
+                ref_hit = None
                 if canon is None and rawm not in drugs_known:
-                    # fuzzy sound-alike fallback: asitromaisin -> azithromycin (difflib stand-in)
-                    import difflib
-                    best, score = None, 0
-                    for known in list(drugs_known) + list(alias_to_canonical.keys()):
-                        sc = difflib.SequenceMatcher(None, rawm, known).ratio()
-                        if sc > score:
-                            best, score = known, sc
-                    if score >= (0.55 if len(rawm) >= 8 else 0.6):
-                        canon = alias_to_canonical.get(best, best)
-                        fuzzy_note = f"fuzzy {rawm}->{canon} ({score:.2f})"
+                    # An exact hit in the national reference is not a guess, so
+                    # it short-circuits the sound-alike path entirely: no
+                    # candidates, nothing for the validator to weigh.
+                    exact = _reference_only_row(rawm, drugs_known)
+                    if exact:
+                        canon, ref_hit = exact
+                        fuzzy_note = ("reference-only: in the national drug "
+                                      "list, not in this pipeline's own list")
                     else:
-                        continue  # skip non-drug words; drug_list is the mini-RxNorm
+                        # fuzzy sound-alike fallback: asitromaisin -> azithromycin (difflib stand-in)
+                        floor = 0.55 if len(rawm) >= 8 else 0.6
+                        candidates = _fuzzy_candidates(rawm, drugs_known, alias_to_canonical, floor)
+                        candidates = _reference_candidates(rawm, candidates, drugs_known)
+                        if candidates:
+                            canon, score = candidates[0]["name"], candidates[0]["score"]
+                            fuzzy_note = f"fuzzy {rawm}->{canon} ({score:.2f})"
+                        else:
+                            continue  # skip non-drug words; drug_list is the mini-RxNorm
                 if _overlaps(allergy_spans, m.start("name"), m.end("name")):
                     continue  # the allergy rules below own this mention
                 dose = float(m.group("dose")) if m.group("dose") else None
@@ -642,14 +891,64 @@ def extract_entities(text, normalized_en, segments):
                 else:
                     conf = 0.96
                     color = "GREEN"
+                matcher_pick = canon
+                dose_red = ""
+                if candidates and dose and unit:
+                    # The pack's dose check runs here, not only in the
+                    # validator: `term_validate` needs Ollama, and a sentence
+                    # whose dose is impossible for the matched drug must not
+                    # depend on a model being pulled to say so.
+                    candidates, ruled_out, all_bad = _demote_implausible(
+                        candidates, dose, unit)
+                    if all_bad:
+                        # Every candidate is a drug this dose cannot belong to.
+                        # Nothing here is safe to put on a chart.
+                        dose_red = (f"dose {('%g' % dose)} {unit} implausible for "
+                                    f"every candidate: {', '.join(ruled_out)}")
+                    elif ruled_out and candidates[0]["name"] != canon:
+                        # The pack overruled the string matcher. Two signals
+                        # disagreeing about which drug was said is the
+                        # sound-alike hazard itself, and `term_validate`
+                        # sends that to a human rather than to a chart.
+                        dose_red = (f"{canon} ruled out on dose; pack prefers "
+                                    f"{candidates[0]['name']}")
+                        canon = candidates[0]["name"]
+                    elif ruled_out:
+                        fuzzy_note = (f"{fuzzy_note}; dose implausible for "
+                                      f"{', '.join(ruled_out)}")
                 if fuzzy_note:
                     conf = 0.88  # fuzzy match -> YELLOW, human must glance
                     color = "YELLOW"
+                if dose_red:
+                    fuzzy_note = f"{fuzzy_note}; {dose_red}".strip("; ")
+                    conf, color = 0.70, "RED"
                 drugs.append({"name": canon or rawm, "dose": dose, "unit": unit,
                               "frequency": freq, "duration": dur,
                               "confidence": conf, "color": color,
                               "source_sentence": proof_sent, "negated": False,
-                              **({"note": fuzzy_note} if fuzzy_note else {})})
+                              **({"note": fuzzy_note} if fuzzy_note else {}),
+                              # the validation stage needs the word that was
+                              # actually heard and every term it could have been,
+                              # not just the one difflib ranked first
+                              # the validation stage needs the word that was
+                              # actually heard and every term it could have been,
+                              # not just the one difflib ranked first. An exact
+                              # reference hit has no candidates, so it is not a
+                              # flagged row and the validator leaves it alone.
+                              **({"raw_token": rawm, "candidates": candidates,
+                                  # the string matcher's own pick, recorded
+                                  # before the dose check reordered anything,
+                                  # so the validator can still tell whether
+                                  # the drug on this row is the one the
+                                  # matcher proposed
+                                  "matcher_pick": matcher_pick}
+                                 if fuzzy_note and candidates else {}),
+                              **({"reference": {"kind": ref_hit["kind"],
+                                                "name": ref_hit["name"],
+                                                "substances": ref_hit.get("substances", []),
+                                                "units": ref_hit.get("units", []),
+                                                "mass_mg": ref_hit.get("mass_mg")}}
+                                 if ref_hit else {})})
         # Doseless drugs. `DRUG_CTX` requires name + number + unit, so a drug
         # dictated without one ("he is continuing ceftriaxone", "takes insulin
         # before meals") is invisible even with a perfect transcript. Those are
@@ -809,9 +1108,34 @@ def ollama_tidy(entities, normalized_en, model="llama3.2:3b", timeout=60):
     return entities
 
 
+def _run_term_validation(ent, validate_terms, ollama_model):
+    """Stage 4b gate. `auto` runs only when the model is actually pulled.
+
+    A fuzzy match that nobody validated and one a validator cleared must not
+    look alike on the chart, so the skip reason is recorded on the rows rather
+    than swallowed.
+    """
+    if validate_terms is False:
+        return ent
+    from term_validate import apply_validation, flagged_rows
+    rows = flagged_rows(ent)
+    if not rows:
+        return ent
+    if validate_terms == "auto":
+        from llm_extract import ollama_available
+        ok, why = ollama_available(ollama_model)
+        if not ok:
+            for row in rows:
+                row["validation"] = {"status": "skipped", "reason": why}
+                row["note"] = f"{row.get('note', '')} | validator skipped".strip(" |")
+            ent["term_validator"] = f"unavailable ({why})"
+            return ent
+    return apply_validation(ent, model=ollama_model)
+
+
 def run_stt_extract(
     clean_wav, job_id="demo-001", use_llm="auto", model="small-int8",
-    ollama_model="llama3.2:3b", strict: bool = False,
+    ollama_model="llama3.2:3b", strict: bool = False, validate_terms="auto",
 ):
     stt = transcribe(clean_wav, job_id, model=model, strict=strict)
     norm = normalize_text(stt["text"])
@@ -837,6 +1161,7 @@ def run_stt_extract(
             ent = ollama_tidy(ent, norm["normalized_en"], model=ollama_model)
         elif use_llm == "auto" and llm_reason:
             ent["llm_engine"] = f"regex-fallback ({llm_reason})"
+    ent = _run_term_validation(ent, validate_terms, ollama_model)
     ent = _annotate_entity_spans(ent, norm["normalized_en"])
     transcript_json = {"job_id": job_id, "text": stt["text"], "language": norm["lang_tag"],
                        "segments": stt["segments"], "normalized_en": norm["normalized_en"],

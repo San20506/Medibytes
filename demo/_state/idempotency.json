@@ -1,3 +1,27 @@
 {
-  "demo-001": "demo-001"
+  "demo-001": "demo-001",
+  "default-demo": "default-demo",
+  "ingest-probe": "ingest-probe",
+  "MB_MED_001_clean-DEN": "MB_MED_001_clean-DEN",
+  "MB_MED_001_clean-RAW": "MB_MED_001_clean-RAW",
+  "MB_MED_002_clean-DEN": "MB_MED_002_clean-DEN",
+  "MB_MED_002_clean-RAW": "MB_MED_002_clean-RAW",
+  "MB_MED_003_clean-DEN": "MB_MED_003_clean-DEN",
+  "MB_MED_003_clean-RAW": "MB_MED_003_clean-RAW",
+  "MB_MED_004_clean-DEN": "MB_MED_004_clean-DEN",
+  "MB_MED_004_clean-RAW": "MB_MED_004_clean-RAW",
+  "MB_MED_005_clean-DEN": "MB_MED_005_clean-DEN",
+  "MB_MED_005_clean-RAW": "MB_MED_005_clean-RAW",
+  "MB_MED_006_clean-DEN": "MB_MED_006_clean-DEN",
+  "MB_MED_006_clean-RAW": "MB_MED_006_clean-RAW",
+  "MB_MED_007_clean-DEN": "MB_MED_007_clean-DEN",
+  "MB_MED_007_clean-RAW": "MB_MED_007_clean-RAW",
+  "dpdf-smoke": "dpdf-smoke",
+  "MB_MED_001_clean-DPDF": "MB_MED_001_clean-DPDF",
+  "MB_MED_002_clean-DPDF": "MB_MED_002_clean-DPDF",
+  "MB_MED_003_clean-DPDF": "MB_MED_003_clean-DPDF",
+  "MB_MED_004_clean-DPDF": "MB_MED_004_clean-DPDF",
+  "MB_MED_005_clean-DPDF": "MB_MED_005_clean-DPDF",
+  "MB_MED_006_clean-DPDF": "MB_MED_006_clean-DPDF",
+  "MB_MED_007_clean-DPDF": "MB_MED_007_clean-DPDF"
 }

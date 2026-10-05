@@ -1,0 +1,615 @@
+{
+  "job_id": "default-demo",
+  "text": "Exam type CT chest PE protocol period. Indication 54 year old female. Shortness of breath. Evaluate for PE period. Technique standard protocol period. Findings colon. Pulmonary vasculature colon. The main PE is patent period. There are filling defects in the segmental branches of the right lower lobe comma. Compatible with acute PE period. No saddle embolus period. Lungs colon. No pneumothorax period. Small bilateral effusions comma. Right greater than left period. New paragraph. Impression colon. Acute segmental PE right lower lobe period.",
+  "language": "en-IN",
+  "segments": [
+    {
+      "id": 0,
+      "text": "Exam type CT chest PE protocol period.",
+      "start": 1.9,
+      "end": 4.94,
+      "lang": "en-IN",
+      "confidence": 0.98,
+      "words": [
+        {
+          "w": " Exam",
+          "s": 1.9,
+          "e": 2.58
+        },
+        {
+          "w": " type",
+          "s": 2.58,
+          "e": 2.86
+        },
+        {
+          "w": " CT",
+          "s": 2.86,
+          "e": 3.16
+        },
+        {
+          "w": " chest",
+          "s": 3.16,
+          "e": 3.64
+        },
+        {
+          "w": " PE",
+          "s": 3.64,
+          "e": 4.0
+        },
+        {
+          "w": " protocol",
+          "s": 4.0,
+          "e": 4.44
+        },
+        {
+          "w": " period.",
+          "s": 4.44,
+          "e": 4.94
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "text": "Indication 54 year old female.",
+      "start": 5.2,
+      "end": 6.82,
+      "lang": "en-IN",
+      "confidence": 0.98,
+      "words": [
+        {
+          "w": " Indication",
+          "s": 5.2,
+          "e": 5.6
+        },
+        {
+          "w": " 54",
+          "s": 5.6,
+          "e": 6.18
+        },
+        {
+          "w": " year",
+          "s": 6.18,
+          "e": 6.36
+        },
+        {
+          "w": " old",
+          "s": 6.36,
+          "e": 6.52
+        },
+        {
+          "w": " female.",
+          "s": 6.52,
+          "e": 6.82
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "text": "Shortness of breath.",
+      "start": 7.24,
+      "end": 7.74,
+      "lang": "en-IN",
+      "confidence": 0.98,
+      "words": [
+        {
+          "w": " Shortness",
+          "s": 7.24,
+          "e": 7.4
+        },
+        {
+          "w": " of",
+          "s": 7.4,
+          "e": 7.56
+        },
+        {
+          "w": " breath.",
+          "s": 7.56,
+          "e": 7.74
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "text": "Evaluate for PE period.",
+      "start": 8.06,
+      "end": 9.22,
+      "lang": "en-IN",
+      "confidence": 0.98,
+      "words": [
+        {
+          "w": " Evaluate",
+          "s": 8.06,
+          "e": 8.34
+        },
+        {
+          "w": " for",
+          "s": 8.34,
+          "e": 8.52
+        },
+        {
+          "w": " PE",
+          "s": 8.52,
+          "e": 8.72
+        },
+        {
+          "w": " period.",
+          "s": 8.72,
+          "e": 9.22
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "text": "Technique standard protocol period.",
+      "start": 9.7,
+      "end": 11.14,
+      "lang": "en-IN",
+      "confidence": 0.98,
+      "words": [
+        {
+          "w": " Technique",
+          "s": 9.7,
+          "e": 10.04
+        },
+        {
+          "w": " standard",
+          "s": 10.04,
+          "e": 10.32
+        },
+        {
+          "w": " protocol",
+          "s": 10.32,
+          "e": 10.7
+        },
+        {
+          "w": " period.",
+          "s": 10.7,
+          "e": 11.14
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "text": "Findings colon.",
+      "start": 11.7,
+      "end": 12.4,
+      "lang": "en-IN",
+      "confidence": 0.98,
+      "words": [
+        {
+          "w": " Findings",
+          "s": 11.7,
+          "e": 12.12
+        },
+        {
+          "w": " colon.",
+          "s": 12.12,
+          "e": 12.4
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "text": "Pulmonary vasculature colon.",
+      "start": 13.1,
+      "end": 14.26,
+      "lang": "en-IN",
+      "confidence": 0.98,
+      "words": [
+        {
+          "w": " Pulmonary",
+          "s": 13.1,
+          "e": 13.36
+        },
+        {
+          "w": " vasculature",
+          "s": 13.36,
+          "e": 13.9
+        },
+        {
+          "w": " colon.",
+          "s": 13.9,
+          "e": 14.26
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "text": "The main PE is patent period.",
+      "start": 14.8,
+      "end": 16.88,
+      "lang": "en-IN",
+      "confidence": 0.98,
+      "words": [
+        {
+          "w": " The",
+          "s": 14.8,
+          "e": 14.88
+        },
+        {
+          "w": " main",
+          "s": 14.88,
+          "e": 15.04
+        },
+        {
+          "w": " PE",
+          "s": 15.04,
+          "e": 15.26
+        },
+        {
+          "w": " is",
+          "s": 15.26,
+          "e": 15.8
+        },
+        {
+          "w": " patent",
+          "s": 15.8,
+          "e": 16.34
+        },
+        {
+          "w": " period.",
+          "s": 16.34,
+          "e": 16.88
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "text": "There are filling defects in the segmental branches of the right lower lobe comma.",
+      "start": 17.54,
+      "end": 21.34,
+      "lang": "en-IN",
+      "confidence": 0.98,
+      "words": [
+        {
+          "w": " There",
+          "s": 17.54,
+          "e": 17.7
+        },
+        {
+          "w": " are",
+          "s": 17.7,
+          "e": 17.82
+        },
+        {
+          "w": " filling",
+          "s": 17.82,
+          "e": 18.06
+        },
+        {
+          "w": " defects",
+          "s": 18.06,
+          "e": 18.3
+        },
+        {
+          "w": " in",
+          "s": 18.3,
+          "e": 18.74
+        },
+        {
+          "w": " the",
+          "s": 18.74,
+          "e": 18.88
+        },
+        {
+          "w": " segmental",
+          "s": 18.88,
+          "e": 19.42
+        },
+        {
+          "w": " branches",
+          "s": 19.42,
+          "e": 19.66
+        },
+        {
+          "w": " of",
+          "s": 19.66,
+          "e": 19.88
+        },
+        {
+          "w": " the",
+          "s": 19.88,
+          "e": 20.06
+        },
+        {
+          "w": " right",
+          "s": 20.06,
+          "e": 20.32
+        },
+        {
+          "w": " lower",
+          "s": 20.32,
+          "e": 20.68
+        },
+        {
+          "w": " lobe",
+          "s": 20.68,
+          "e": 21.02
+        },
+        {
+          "w": " comma.",
+          "s": 21.02,
+          "e": 21.34
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "text": "Compatible with acute PE period.",
+      "start": 21.94,
+      "end": 24.32,
+      "lang": "en-IN",
+      "confidence": 0.98,
+      "words": [
+        {
+          "w": " Compatible",
+          "s": 21.94,
+          "e": 22.44
+        },
+        {
+          "w": " with",
+          "s": 22.44,
+          "e": 22.74
+        },
+        {
+          "w": " acute",
+          "s": 22.74,
+          "e": 23.54
+        },
+        {
+          "w": " PE",
+          "s": 23.54,
+          "e": 23.86
+        },
+        {
+          "w": " period.",
+          "s": 23.86,
+          "e": 24.32
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "text": "No saddle embolus period.",
+      "start": 24.82,
+      "end": 26.3,
+      "lang": "en-IN",
+      "confidence": 0.98,
+      "words": [
+        {
+          "w": " No",
+          "s": 24.82,
+          "e": 24.94
+        },
+        {
+          "w": " saddle",
+          "s": 24.94,
+          "e": 25.22
+        },
+        {
+          "w": " embolus",
+          "s": 25.22,
+          "e": 25.98
+        },
+        {
+          "w": " period.",
+          "s": 25.98,
+          "e": 26.3
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "text": "Lungs colon.",
+      "start": 26.98,
+      "end": 27.56,
+      "lang": "en-IN",
+      "confidence": 0.98,
+      "words": [
+        {
+          "w": " Lungs",
+          "s": 26.98,
+          "e": 27.16
+        },
+        {
+          "w": " colon.",
+          "s": 27.16,
+          "e": 27.56
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "text": "No pneumothorax period.",
+      "start": 28.08,
+      "end": 29.32,
+      "lang": "en-IN",
+      "confidence": 0.98,
+      "words": [
+        {
+          "w": " No",
+          "s": 28.08,
+          "e": 28.2
+        },
+        {
+          "w": " pneumothorax",
+          "s": 28.2,
+          "e": 28.96
+        },
+        {
+          "w": " period.",
+          "s": 28.96,
+          "e": 29.32
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "text": "Small bilateral effusions comma.",
+      "start": 29.32,
+      "end": 31.54,
+      "lang": "en-IN",
+      "confidence": 0.99,
+      "words": [
+        {
+          "w": " Small",
+          "s": 29.32,
+          "e": 29.98
+        },
+        {
+          "w": " bilateral",
+          "s": 29.98,
+          "e": 30.36
+        },
+        {
+          "w": " effusions",
+          "s": 30.36,
+          "e": 31.08
+        },
+        {
+          "w": " comma.",
+          "s": 31.08,
+          "e": 31.54
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "text": "Right greater than left period.",
+      "start": 32.32,
+      "end": 33.66,
+      "lang": "en-IN",
+      "confidence": 0.99,
+      "words": [
+        {
+          "w": " Right",
+          "s": 32.32,
+          "e": 32.58
+        },
+        {
+          "w": " greater",
+          "s": 32.58,
+          "e": 32.84
+        },
+        {
+          "w": " than",
+          "s": 32.84,
+          "e": 33.06
+        },
+        {
+          "w": " left",
+          "s": 33.06,
+          "e": 33.32
+        },
+        {
+          "w": " period.",
+          "s": 33.32,
+          "e": 33.66
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "text": "New paragraph.",
+      "start": 34.5,
+      "end": 35.42,
+      "lang": "en-IN",
+      "confidence": 0.99,
+      "words": [
+        {
+          "w": " New",
+          "s": 34.5,
+          "e": 35.04
+        },
+        {
+          "w": " paragraph.",
+          "s": 35.04,
+          "e": 35.42
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "text": "Impression colon.",
+      "start": 36.22,
+      "end": 37.3,
+      "lang": "en-IN",
+      "confidence": 0.99,
+      "words": [
+        {
+          "w": " Impression",
+          "s": 36.22,
+          "e": 36.74
+        },
+        {
+          "w": " colon.",
+          "s": 36.74,
+          "e": 37.3
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "text": "Acute segmental PE right lower lobe period.",
+      "start": 38.34,
+      "end": 40.86,
+      "lang": "en-IN",
+      "confidence": 0.99,
+      "words": [
+        {
+          "w": " Acute",
+          "s": 38.34,
+          "e": 38.8
+        },
+        {
+          "w": " segmental",
+          "s": 38.8,
+          "e": 39.3
+        },
+        {
+          "w": " PE",
+          "s": 39.3,
+          "e": 39.5
+        },
+        {
+          "w": " right",
+          "s": 39.5,
+          "e": 39.84
+        },
+        {
+          "w": " lower",
+          "s": 39.84,
+          "e": 40.16
+        },
+        {
+          "w": " lobe",
+          "s": 40.16,
+          "e": 40.5
+        },
+        {
+          "w": " period.",
+          "s": 40.5,
+          "e": 40.86
+        }
+      ]
+    }
+  ],
+  "normalized_en": "Exam type CT chest PE protocol period. Indication 54 year old female. Shortness of breath. Evaluate for PE period. Technique standard protocol period. Findings colon. Pulmonary vasculature colon. The main PE is patent period. There are filling defects in the segmental branches of the right lower lobe comma. Compatible with acute PE period. No saddle embolus period. Lungs colon. No pneumothorax period. Small bilateral effusions comma. Right greater than left period. New paragraph. Impression colon. Acute segmental PE right lower lobe period.",
+  "normalizations": [],
+  "stt_engine": "faster-whisper:small-cpu-int8",
+  "stt_provenance": {
+    "job_id": "default-demo",
+    "provider": "faster-whisper",
+    "requested_model": "small-int8",
+    "actual_model": "small",
+    "device": "cpu",
+    "compute_type": "int8",
+    "word_timestamps": true,
+    "temperature": 0.0,
+    "beam_size": 1,
+    "runtime_version": "1.2.1",
+    "model_hash": null,
+    "model_snapshot": null,
+    "is_mock": false
+  }
+}

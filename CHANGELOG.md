@@ -6,6 +6,142 @@ detail (OpenSpec change, evidence directory, or commit).
 
 ## Unreleased
 
+### National drug reference behind the post-processor (2026-10-05)
+
+**The defect.** Drug post-processing resolved misheard medicine names against
+`demo/assets/drug_list_mini.json`, which holds 33 entries. When the drug that
+was actually said is not one of the 33, difflib still returns its nearest
+neighbour, so the matcher's answer was "the closest of 33 strings" presented as
+a medicine. The worked example in `demo/term_validate.py`'s own docstring was
+real: `hydroxazine` resolved to `levothyroxine` - a thyroid hormone in place of
+an antihistamine - because hydroxyzine was not in the list at all. A correctly
+dictated drug outside the 33 fared no better: it was dropped from the chart
+entirely.
+
+**The reference.** `demo/tools/build_drug_reference.py` compiles the Common
+Drug Codes for India flat-file package (NRCeS / C-DAC Pune, CC BY 4.0) into
+`demo/assets/drug_reference.json`: 2,542 substances with the units, strengths
+and dose forms the pack lists for each, and 71,872 Indian brand names joined
+out to their generics. The ProductMaster -> BrandMaster -> GenericMaster ->
+SubstanceMaster join resolves at 99.6%, measured and printed by the build
+rather than assumed. The pack is named in USAN and Indian clinicians dictate
+INN/BAN, so a curated bridge maps `paracetamol -> acetaminophen`,
+`salbutamol -> albuterol` and 25 more; without it a perfectly said
+`paracetamol` missed the reference.
+
+**What it changes.** `demo/drug_reference.py` is consulted in the fuzzy path
+only. An exact reference hit is no longer a guess: the row is emitted YELLOW
+with a `reference-only` note rather than dropped, so `telmisartan 40 mg` now
+reaches the chart. A misheard token reaches its real referent -
+`hydroxazine -> hydroxyzine`, `rosuvastatn -> rosuvastatin`,
+`pantaprazol -> pantoprazole`. And dose became evidence: the pack lists
+levothyroxine between 0.005 mg and 0.3 mg, so a sentence reading `25 mg` is 83x
+its maximum and rules it out on medicine rather than on spelling.
+`demo/term_validate.py` drops dose-contradicted candidates before its tie check
+and passes the pack's facts into the validator prompt; if every candidate
+conflicts the row goes RED rather than picking from names the pack has already
+contradicted. The same check also runs at extraction, because `term_validate`
+needs Ollama and an impossible dose must not depend on a model being pulled.
+
+Note the check compares *magnitude against the listed strength range*, not unit
+strings. An earlier draft compared `mg` to `g` as a mismatch and rejected
+`azithromycin 1 g`, an ordinary single dose; the asset therefore ships a
+`mass_mg` range computed over every strength the pack lists, before the display
+cap, so a truncated maximum cannot veto a legitimate large dose.
+
+**The guards, because 72k brand names is itself a hazard.** Each one below was
+added in response to a measured failure, not an anticipated one:
+
+- *Only substance names create rows.* This is the big one. Probing all 6,943
+  distinct English words from this project's real ASR output through the frame
+  "Give <word> 500 mg daily", 161 of them hit a registered Indian trade name -
+  `Space` is a paracetamol, `Bus` a pantoprazole, `Gear` an omeprazole, `Lot` a
+  lisinopril - while exactly **two** collide with a marketed substance. Brands
+  are coined to be short and memorable, which is the same thing as colliding
+  with English, so no stopword list can cover them; INNs are not coined that
+  way. Brands may therefore not bring a row into existence. The brand table is
+  still shipped - it is what maps a trade name to its generic, the join any
+  future handling of doseless brand mentions needs - but nothing in today's
+  extractor reads it. This cut
+  reference-introduced false positives on that vocabulary from **143 to 18**.
+  The cost is that a brand outside the mini list no longer charts on its own -
+  `augmentin 625 mg` is dropped rather than guessed - which is the mini list's
+  job to fix, by adding the brands that matter.
+- *Fuzzy matching is substances-only too, and only substances with a marketed
+  product.* The pack is SNOMED, so it also carries drug classes ("analgesic",
+  "antiviral"), excipients and bare chemicals - 287 rows with no strength
+  anywhere. `hydrazine` is one, and at 0.900 against `hydroxazine` it tied with
+  hydroxyzine's 0.909 and sent this stage's own headline case to a human.
+- *Lab values are not prescriptions.* `DRUG_CTX`'s `\b` after the unit matches
+  before `/dL`, so "glucose 180 mg/dL, calcium 9 mg/dL, albumin 3.2 g/dL, urea
+  40 mg/dL" filed four false medicines off one line of bloodwork. Matches
+  followed by a per-volume denominator are skipped; `mg/ml` and `mg/kg` still
+  count as doses.
+- *The mini list stays canonical.* It is the vocabulary the gold data is
+  written in, and a reference name leads a row only when it out-scores the best
+  curated candidate by a margin - `moxacillin` scores 0.95 against `oxacillin`
+  and 0.90 against `amoxicillin`, and the higher number is the wrong
+  antibiotic. A reference name also cannot *tie* with a curated pick:
+  `sitromycin` (a cefoperazone brand) at 0.818 against azithromycin's 0.833 was
+  sending every fuzzy azithromycin to a human.
+- *Charts keep the spelling that was dictated.* The pack is USAN-named and
+  Indian charts are INN, so `frusemide` does not read back as `furosemide` and
+  `Crocin` charts as paracetamol; where the mini list already carries the pack's
+  own name, the mini list's spelling wins over the synonym table. Curated
+  aliases also outrank brands in the name index, because `paracetamol`,
+  `lignocaine`, `amoxycillin` and `phenobarbitone` are all registered trade
+  names as well as the INN spelling, and indexing them as brands hid them from
+  the substance table entirely.
+
+**What it does not do.** The residual false-positive rate is not zero: 18 of
+those 6,943 English words still reach a substance by fuzzy match, of which
+about seven are ordinary words rather than mishearing-shaped tokens
+(`hearing -> heparin` at 0.857, `secret -> secretin`, `racial -> uracil`). No
+threshold separates them, because the wanted matches span the same range -
+`asithromysin -> azithromycin` scores 0.833, *below* `hearing -> heparin`. The
+floor was left at 0.78 rather than tuned to this sample; every such row lands
+YELLOW for a human glance and none can reach GREEN.
+
+**Verification.**
+
+- 142 tests pass, 30 of them new in `demo/tests/test_drug_reference.py`.
+- *Clinical eval, C4 extraction ceiling:* re-scored over all 7 gold clips from
+  their reference transcripts, reference on and off. Unchanged at **41/41**
+  (26/26 vitals, 11/11 drugs, 2/2 doses, 2/2 allergy polarity), with
+  byte-identical drug rows on every clip.
+- *Real ASR output:* all 42 decoded arms in `medibytes-med-7/run-mix.json`
+  re-extracted both ways. Zero rows changed; gold drug recall 33/66 either way.
+  The reference neither helps nor harms on this corpus. **No measured
+  end-to-end gain is claimed.** (An earlier draft of this entry blamed the
+  doseless path. That was wrong: `clavulic acid 125 mg` carries a dose and
+  still fails, because `DRUG_CTX`'s name group is a single `[A-Za-z]+` token
+  and captures `acid`. Multi-word drug names are unreachable, which is a
+  separate defect and still open.)
+- *Transcript diff:* every file in `demo/transcripts/`. Zero rows changed.
+- *Leave-one-out over the mini list's aliases* - each alias removed in turn and
+  the sentence re-extracted at a plausible dose for that drug (the geometric
+  mean of the pack's listed range), simulating a mishearing the curated list
+  has never seen. Both arms resolve 21 of 34. The figure that matters is how
+  often a **wrong drug is charted at YELLOW**, where a reviewer may wave it
+  through: **7 with the reference off, 5 with it on**, and neither arm charts a
+  wrong drug at RED. It newly gets `thromice` and `epinephrine` right, both
+  previously charted as a different drug (levothyroxine and aspirin), and
+  turns `thyroxine` and `clavulanate` into the same molecule under its other
+  name. It also replaces one wrong answer with another: `asthalin` charted as
+  `azithromycin` before and charts as `anthralin` now. Six aliases - all brand
+  names, including `dolo`, `azee` and `lasix` - are dropped rather than
+  guessed in both arms.
+  (An earlier draft of this probe used a flat 500 mg for every drug, which is
+  itself an implausible dose for levothyroxine and salbutamol; it manufactured
+  a `thyronorm` failure that does not exist.)
+- *Cost:* ~60 ms per fuzzy token and a one-off 0.16 s asset load. A missing or
+  corrupt asset disables the module and leaves the matcher exactly as it was.
+
+One existing test premise changed rather than being deleted: the old
+`hydroxazine -> levothyroxine` assertion encoded the defect as expected
+behaviour, so the rejection mechanism it guarded is now tested on an injected
+candidate set, independent of the lexicon.
+
 ### Clinical extraction fixes, MedASR LM fusion, denoiser comparison (2026-10-05)
 
 Full detail in `2026-10-05-best-configuration-spec.md`, which also consolidates

@@ -86,6 +86,7 @@ def run_pipeline(
     template="er_discharge",
     denoiser=BackendId.NONE.value,
     denoiser_config=None,
+    validate_terms="auto",
     root=None,
     log=print,
 ):
@@ -116,7 +117,9 @@ def run_pipeline(
         f"rms {meta['rms_dbfs_before']}->{meta['rms_dbfs_after']}dBFS"
     )
 
-    transcript_json, entities_json = run_stt_extract(cleaned, job_id, use_llm=use_llm, model=model)
+    transcript_json, entities_json = run_stt_extract(
+        cleaned, job_id, use_llm=use_llm, model=model, validate_terms=validate_terms
+    )
     log(f"[2] STT engine={transcript_json['stt_engine']} lang={transcript_json['language']}")
     log(f"[3] normalized: {transcript_json['normalized_en'][:100]}")
     log(f"[4] drugs={len(entities_json['drugs'])} symptoms={len(entities_json['symptoms'])} "
@@ -140,6 +143,7 @@ def run_pipeline(
             "model": model,
             "use_llm": use_llm,
             "template": template,
+            "validate_terms": validate_terms,
         },
         "clean": meta,
         "transcript": transcript_json,
@@ -190,6 +194,8 @@ def main():
         help="single enhancement backend (default: none)",
     )
     ap.add_argument("--denoiser-config", default=None, help="optional JSON backend config")
+    ap.add_argument("--no-validate-terms", action="store_true",
+                    help="skip stage 4b semantic validation of fuzzy drug matches")
     ap.add_argument("--gen-samples", action="store_true")
     a = ap.parse_args()
 
@@ -211,6 +217,7 @@ def main():
             template=a.template,
             denoiser=a.denoiser,
             denoiser_config=a.denoiser_config,
+            validate_terms=False if a.no_validate_terms else "auto",
         )
     except ValueError as e:
         print(f"[pipeline] {e}", file=sys.stderr)

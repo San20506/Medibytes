@@ -1,0 +1,94 @@
+{
+  "job_id": "ingest-probe",
+  "drugs": [
+    {
+      "name": "paracetamol",
+      "dose": 650.0,
+      "unit": "mg",
+      "frequency": "",
+      "duration": "",
+      "confidence": 0.96,
+      "color": "GREEN",
+      "source_sentence": "For the fever, he's been advised paracetamol 650 milligrams and the doctor has also considered the amoxilin with clavulic acid.",
+      "negated": false,
+      "start_char": 862,
+      "end_char": 873,
+      "span_status": "exact"
+    }
+  ],
+  "symptoms": [
+    {
+      "text": "fever",
+      "confidence": 0.9,
+      "color": "YELLOW",
+      "source_sentence": "He is around 52 years old and he's been having fever and cough for about 3 days now.",
+      "negated": false,
+      "start_char": -1,
+      "end_char": -1,
+      "span_status": "ambiguous"
+    },
+    {
+      "text": "cough",
+      "confidence": 0.9,
+      "color": "YELLOW",
+      "source_sentence": "He is around 52 years old and he's been having fever and cough for about 3 days now.",
+      "negated": false,
+      "start_char": -1,
+      "end_char": -1,
+      "span_status": "ambiguous"
+    },
+    {
+      "text": "cough",
+      "confidence": 0.9,
+      "color": "YELLOW",
+      "source_sentence": "The cough is productive and he's also complaining about some chest discomfort and shortness of breath.",
+      "negated": false,
+      "start_char": -1,
+      "end_char": -1,
+      "span_status": "ambiguous"
+    },
+    {
+      "text": "fever",
+      "confidence": 0.9,
+      "color": "YELLOW",
+      "source_sentence": "For the fever, he's been advised paracetamol 650 milligrams and the doctor has also considered the amoxilin with clavulic acid.",
+      "negated": false,
+      "start_char": -1,
+      "end_char": -1,
+      "span_status": "ambiguous"
+    }
+  ],
+  "vitals": [
+    {
+      "text": "101 degrees Fahrenheit",
+      "confidence": 0.87,
+      "color": "YELLOW",
+      "source_sentence": "Coming to his vitals, his temperature is around 101 degrees Fahrenheit.",
+      "start_char": 413,
+      "end_char": 435,
+      "span_status": "exact"
+    },
+    {
+      "text": "blood pressure is 130 over 85",
+      "confidence": 0.87,
+      "color": "YELLOW",
+      "source_sentence": "His blood pressure is 130 over 85, pulses around 92 beats per minute and respiratory rate is 22.",
+      "start_char": -1,
+      "end_char": -1,
+      "span_status": "not_found"
+    },
+    {
+      "text": "94% on room air",
+      "confidence": 0.87,
+      "color": "YELLOW",
+      "source_sentence": "His oxygen saturation is around 94% on room air.",
+      "start_char": 561,
+      "end_char": 576,
+      "span_status": "exact"
+    }
+  ],
+  "allergies": [],
+  "negations": [],
+  "diagnosis": {},
+  "followup": {}
+}

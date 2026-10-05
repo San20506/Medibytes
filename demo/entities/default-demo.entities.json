@@ -1,0 +1,10 @@
+{
+  "job_id": "default-demo",
+  "drugs": [],
+  "symptoms": [],
+  "vitals": [],
+  "allergies": [],
+  "negations": [],
+  "diagnosis": {},
+  "followup": {}
+}
