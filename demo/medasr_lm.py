@@ -30,12 +30,15 @@ MODEL_REVISION = "ae1e4845b4b07479735d93e1e591e566435b7104"
 CHUNK_S = 20.0
 STRIDE_S = 2.0
 BEAM_WIDTH = 8
-# Tuned on in-sample clips 001/002 (C2 drug names + numbers); re-tune here, not
-# on held-out audio.
-ALPHA = 0.35
-BETA = 1.5
+# `None` means pyctcdecode's own defaults, which is what the model author's
+# notebook uses. The previous 0.35/1.5 were tuned against a label encoding that
+# was itself wrong, so they carried no information. Re-tune on in-sample clips
+# only, never on held-out audio.
+ALPHA = None
+BETA = None
 
 _DECODER = {}
+_CTC = {}
 _LM_LABELS = {}
 
 
@@ -46,16 +49,47 @@ def _snapshot_dir():
 
 
 def _labels(tokenizer, vocab_size):
+    """The CTC alphabet in the form the shipped language model expects.
+
+    This is the model author's own scheme, from `notebook.ipynb` in the model
+    repo, and it is not the obvious one.  `lm_6.kenlm` is a sentencepiece
+    piece-level model - 519 unigrams such as `#There`, `ation`, `c` - and it
+    marks a word boundary with `#`, not with the sentencepiece `▁`.
+
+    So every piece is prefixed with `▁`, which makes pyctcdecode treat each
+    piece as a separate "word" and score it against the LM one piece at a
+    time, and the piece's own `▁` becomes `#` so the LM recognises it.
+    `_restore_text` undoes both afterwards.
+
+    Mapping `▁` to a space instead - the intuitive reading, and what this
+    module shipped with - left only 234 of the LM's 519 tokens reachable, so
+    most hypotheses scored as `<unk>` and the fusion made the transcript worse
+    than greedy decoding. With this scheme 507 of 519 match.
+    """
     key = id(tokenizer)
     if key not in _LM_LABELS:
-        pieces = [tokenizer.convert_ids_to_tokens(i) for i in range(vocab_size)]
-        labels = [p.replace("▁", " ") for p in pieces]
+        labels = [tokenizer.convert_ids_to_tokens(i) for i in range(vocab_size)]
         labels[0] = ""  # <epsilon> blank (see module docstring)
+        for i in range(1, len(labels)):
+            piece = labels[i]
+            if not (piece.startswith("<") and piece.endswith(">")):
+                labels[i] = "▁" + piece.replace("▁", "#")
         _LM_LABELS[key] = labels
     return _LM_LABELS[key]
 
 
+def _restore_text(text):
+    """Undo the `_labels` encoding: pieces are joined, `#` is the space."""
+    return text.replace(" ", "").replace("#", " ").replace("</s>", "").strip()
+
+
 def _decoder(labels, lm_path):
+    # No `unigrams=`. pyctcdecode warns that it cannot read a vocabulary out
+    # of a binary kenlm, and the repo does ship `lm_6.arpa.xz` to read one
+    # from - but measured on the 7 in-sample clips it changes nothing (36/41
+    # either way), and passing the LM's 519 pieces makes pyctcdecode complain
+    # that unigrams and labels disagree, because the labels carry the `▁`
+    # prefix this encoding adds. The author's notebook passes none either.
     if lm_path not in _DECODER:
         from pyctcdecode import build_ctcdecoder
 
@@ -70,8 +104,14 @@ def transcribe_medasr_lm(clean_wav, job_id="demo-001", device=None,
     from transformers import AutoModelForCTC, AutoProcessor
 
     snap = _snapshot_dir()
-    proc = AutoProcessor.from_pretrained(snap, local_files_only=True)
-    model = AutoModelForCTC.from_pretrained(snap, local_files_only=True)
+    # Load the 402 MB acoustic model once per process, mirroring
+    # `stt_extract._medasr_pipeline`. Without this every call re-read it from
+    # disk, which is tolerable for a one-off CLI run and not for the server,
+    # where it would be paid on each request.
+    if snap not in _CTC:
+        _CTC[snap] = (AutoProcessor.from_pretrained(snap, local_files_only=True),
+                      AutoModelForCTC.from_pretrained(snap, local_files_only=True))
+    proc, model = _CTC[snap]
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
     model = model.to(device).eval()
@@ -105,14 +145,16 @@ def transcribe_medasr_lm(clean_wav, job_id="demo-001", device=None,
 
     labels = _labels(proc.tokenizer, logits.shape[-1])
     decoder = _decoder(labels, os.path.join(snap, "lm_6.kenlm"))
-    decoder.reset_params(alpha=alpha, beta=beta)
+    if alpha is not None or beta is not None:
+        decoder.reset_params(alpha=alpha, beta=beta)
     parts = []
     for lg, (s, e) in zip(logits, spans):
         fps = lg.shape[0] / max(e - s, 1e-6)
         a = 0 if s == 0 else int(round(fps * (STRIDE_S / 2)))
         edge = e >= duration_s - 0.01
         b = lg.shape[0] if edge else lg.shape[0] - int(round(fps * (STRIDE_S / 2)))
-        parts.append(decoder.decode(lg[a:b], beam_width=beam_width))
+        parts.append(_restore_text(
+            decoder.decode(lg[a:b], beam_width=beam_width)))
     raw_text = " ".join(parts)
     text = medasr_detokenize(raw_text)
     provenance = {

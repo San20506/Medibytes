@@ -58,11 +58,28 @@ def test_sentencepiece_labels_keep_the_word_boundary_and_blank_out_epsilon():
 
     # id 0 must be the empty CTC blank, or pyctcdecode emits "<epsilon>".
     assert labels[0] == ""
-    # The marker becomes a space; stripping it would collide these two and
-    # pyctcdecode rejects a duplicated alphabet entry.
-    assert labels[1] == " ho" and labels[2] == "ho"
-    assert labels[3] == " amoxicillin"
+    # Every piece is prefixed with the sentencepiece marker so pyctcdecode
+    # scores it as its own "word", and the piece's own marker becomes `#`,
+    # which is what `lm_6.kenlm` uses for a word boundary. Mapping the marker
+    # to a space instead - which this module shipped with - left only 234 of
+    # the LM's 519 tokens reachable and made fusion worse than greedy.
+    assert labels[1] == "\u2581#ho" and labels[2] == "\u2581ho"
+    assert labels[3] == "\u2581#amoxicillin"
+    # Still distinct: pyctcdecode rejects a duplicated alphabet entry.
     assert len(set(labels)) == len(labels)
+
+
+def test_restore_text_undoes_the_label_encoding():
+    import medasr_lm
+
+    # pyctcdecode emits the pieces space-separated with the marker stripped;
+    # joining them and turning `#` back into a space recovers the sentence.
+    assert medasr_lm._restore_text("#the #pa tient") == "the patient"
+    assert (medasr_lm._restore_text("#There #is #a #mi l d #de f or m ity")
+            == "There is a mild deformity")
+    # the end-of-sequence token must not survive into the transcript
+    assert medasr_lm._restore_text("#done</s>") == "done"
+
 
 
 def test_labels_are_cached_per_tokenizer():
