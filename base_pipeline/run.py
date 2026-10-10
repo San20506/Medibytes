@@ -22,7 +22,7 @@ import sys
 import time
 from pathlib import Path
 
-from . import decode_presets
+from . import decode_presets, manifest, presets
 from .audio_clean import BackendId, EnhancementConfig, clean_audio
 from .stt_extract import run_stt_extract
 
@@ -59,12 +59,13 @@ def _slug(text):
 
 
 def run_clip(src, arm_dir, denoiser, *, model, use_llm, validate_terms, second_pass,
-             llm_model, context_repair=False, decode=decode_presets.DEFAULT):
+             llm_model, context_repair=False, decode=decode_presets.DEFAULT, config=None):
+    """One clip through one denoiser arm; `config` replaces the backend's shipped config."""
     arm_dir.mkdir(parents=True, exist_ok=True)
     backend = BackendId(denoiser)
     cleaned = arm_dir / "cleaned.wav"
     t0 = time.perf_counter()
-    meta = clean_audio(src, cleaned, backend=backend, config=denoiser_config(backend))
+    meta = clean_audio(src, cleaned, backend=backend, config=config or denoiser_config(backend))
     t_clean = time.perf_counter() - t0
     t0 = time.perf_counter()
     transcript, entities = run_stt_extract(
@@ -227,19 +228,23 @@ def render_report(src, denoiser, result):
     return "\n".join(out) + "\n"
 
 
-def main(argv=None):
+def build_parser():
+    """Flags that map onto a preset field default to None: only a typed flag overrides the preset."""
     ap = argparse.ArgumentParser(prog="python -m base_pipeline.run", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("inputs", nargs="+", help="audio files and/or folders of audio")
+    ap.add_argument("--preset", default=presets.DEFAULT, choices=presets.names(),
+                    help="named stage selection (presets.py); the flags below override it "
+                         f"(default {presets.DEFAULT})")
     ap.add_argument("--out", default=f"runs/{time.strftime('%Y%m%d-%H%M%S')}",
                     help="output folder (default runs/<timestamp>)")
     ap.add_argument("--denoiser", action="append", choices=[b.value for b in BackendId],
                     help="repeat to compare arms side by side (default: none)")
-    ap.add_argument("--model", default="medasr",
+    ap.add_argument("--model",
                     help="medasr (default) | small-int8 | base-int8 | medasr-lm | mock")
     ap.add_argument("--no-second-pass", action="store_true",
                     help="skip the second decoder that recovers drug names the first missed")
-    ap.add_argument("--decode", default=decode_presets.DEFAULT, choices=list(decode_presets.PRESETS),
+    ap.add_argument("--decode", choices=list(decode_presets.PRESETS),
                     help="faster-whisper decoding preset (see decode_presets.py); medasr takes none")
     ap.add_argument("--second-pass", metavar="MODEL",
                     help="decoder for the second pass (default: auto-paired); e.g. large-v3 for medasr")
@@ -252,19 +257,45 @@ def main(argv=None):
     ap.add_argument("--variant", choices=["whisper-medasr"],
                     help="SNR-gated denoise -> Whisper -> MedASR on the medical clips -> extract "
                          "-> verify; ignores --denoiser/--model/--llm and every post-processing step")
-    ap.add_argument("--snr-threshold", type=float, default=15.0,
+    ap.add_argument("--snr-threshold", type=float,
                     help="--variant: denoise only when estimated SNR (dB) is below this")
-    ap.add_argument("--whisper-model", default="small-int8",
+    ap.add_argument("--whisper-model",
                     help="--variant: Whisper size used to find the medical stretches")
     ap.add_argument("--llm-url", help="OpenAI-compatible base URL, e.g. http://127.0.0.1:8080/v1")
     ap.add_argument("--llm-model", help="model name on that server")
     ap.add_argument("--llm-env", metavar="FILE",
                     help="KEY=VALUE file to load into the environment (e.g. CHATGPT_API_KEY=... "
                          "for --llm-url https://api.openai.com/v1)")
-    a = ap.parse_args(argv)
+    return ap
 
-    if a.decode != decode_presets.DEFAULT and a.model in ("medasr", "medasr-lm"):
-        ap.error(f"--decode {a.decode} applies to faster-whisper models only, not --model {a.model}")
+
+def typed_overrides(a):
+    """The flags the user actually typed, keyed like a preset field."""
+    typed = {"model": a.model, "decode": a.decode, "variant": a.variant,
+             "snr_threshold": a.snr_threshold, "whisper_model": a.whisper_model}
+    typed = {k: v for k, v in typed.items() if v is not None}
+    if a.no_second_pass:
+        typed["second_pass"] = None
+    elif a.second_pass:
+        typed["second_pass"] = a.second_pass
+    if a.llm:
+        typed["use_llm"] = True
+    if a.no_validate:
+        typed["validate_terms"] = False
+    if a.context_repair:
+        typed["context_repair"] = True
+    return typed
+
+
+def main(argv=None):
+    ap = build_parser()
+    a = ap.parse_args(argv)
+    overrides = typed_overrides(a)
+    cfg = presets.resolve(a.preset, overrides)
+
+    if cfg["decode"] != decode_presets.DEFAULT and cfg["model"] in ("medasr", "medasr-lm"):
+        ap.error(f"decode preset {cfg['decode']} applies to faster-whisper models only, "
+                 f"not model {cfg['model']}")
     if a.llm_env:
         for line in Path(a.llm_env).read_text(encoding="utf-8").splitlines():
             k, sep, v = line.partition("=")
@@ -283,7 +314,11 @@ def main(argv=None):
         return 2
 
     out = Path(a.out)
-    arms = [a.variant] if a.variant else a.denoiser or ["none"]
+    arms = [cfg["variant"]] if cfg["variant"] else a.denoiser or [cfg["denoiser"]]
+    manifest.write_manifest(out, preset=a.preset, config=cfg,
+                            overrides={**overrides, **({"denoiser": a.denoiser} if a.denoiser else {})},
+                            arms=arms, clips=clips,
+                            argv=sys.argv[1:] if argv is None else list(argv))
     review = []
     summary = ["# Run summary", "", "| clip | denoiser | engine | drugs | vitals | allergies | s |",
                "|---|---|---|---|---|---|---|"]
@@ -293,20 +328,18 @@ def main(argv=None):
             arm_dir = out / _slug(src.stem) / denoiser
             print(f"-> {label}", flush=True)
             try:
-                if a.variant:
+                if cfg["variant"]:
                     from .whisper_medasr import run_variant
 
-                    r = run_variant(src, arm_dir, snr_threshold_db=a.snr_threshold,
-                                    whisper_model=a.whisper_model)
+                    r = run_variant(src, arm_dir, snr_threshold_db=cfg["snr_threshold"],
+                                    whisper_model=cfg["whisper_model"])
                     print(f"   snr {r['gate']['snr_db']} dB, denoised={r['gate']['denoised']}",
                           flush=True)
                 else:
-                    r = run_clip(src, arm_dir, denoiser, model=a.model,
-                                 use_llm=True if a.llm else False,
-                                 validate_terms=False if a.no_validate else "auto",
-                                 second_pass=None if a.no_second_pass else (a.second_pass or "auto"),
-                                 llm_model=a.llm_model, context_repair=a.context_repair,
-                                 decode=a.decode)
+                    r = run_clip(src, arm_dir, denoiser, model=cfg["model"],
+                                 use_llm=cfg["use_llm"], validate_terms=cfg["validate_terms"],
+                                 second_pass=cfg["second_pass"], llm_model=a.llm_model,
+                                 context_repair=cfg["context_repair"], decode=cfg["decode"])
             except Exception as err:  # one bad clip must not end the batch
                 print(f"   FAILED: {type(err).__name__}: {err}", file=sys.stderr)
                 summary.append(f"| {src.name} | {denoiser} | FAILED: {type(err).__name__} | | | | |")

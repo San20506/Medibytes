@@ -16,19 +16,18 @@ This file adds no clinical logic: it imports ``run_clip``,
 
 from __future__ import annotations
 
-import json
 import tempfile
 import time
 from pathlib import Path
 
 import streamlit as st
 
+from base_pipeline import manifest, presets
 from base_pipeline.audio_clean import BackendId, EnhancementConfig
 from base_pipeline.run import (
     AUDIO_EXT,
     _slug,
     denoiser_config,
-    render_report,
     review_rows,
     run_clip,
 )
@@ -38,6 +37,9 @@ _RUNS = _HERE / "runs"
 
 SAFE_DENOISERS = ["none", "sherpa-gtcrn-simple"]
 SAFE_MODELS = ["medasr", "small-int8", "base-int8", "mock"]
+# Presets this page can run: the chain from the sidebar knobs. The whisper-medasr variant
+# replaces the whole chain, so it stays CLI-only (`run.py --preset whisper-medasr`).
+UI_PRESETS = [n for n in presets.names() if presets.resolve(n)["variant"] is None]
 
 
 def _color_pill(color: str | None) -> str:
@@ -81,110 +83,10 @@ def ui_denoiser_config(backend: BackendId, override_model_path: str = ""):
     return cfg
 
 
-def _run_one_arm(
-    src: Path, arm_dir: Path, denoiser: str, *, model: str, second_pass,
-    use_llm: bool, validate_terms, llm_model, sherpa_path: str,
-):
-    """Run a single (clip, denoiser) arm, honouring the sherpa path override."""
-    from base_pipeline.run import _BACKENDS  # noqa: PLC0415  (reuse, no fork)
-
-    arm_dir.mkdir(parents=True, exist_ok=True)
-    backend = BackendId(denoiser)
-    # Reuse run_clip but with our config so the model path is overridable.
-    import json as _json  # noqa: PLC0415
-
-    raw = {"variant_id": backend.value}
-    shipped = _BACKENDS / f"{backend.value}.config.json"
-    if shipped.is_file():
-        raw = _json.loads(shipped.read_text(encoding="utf-8"))
-        raw.pop("backend", None)
-        if "model_path" in raw:
-            raw["model_path"] = Path(raw["model_path"])
-    if (sherpa_path or "").strip() and backend.value == "sherpa-gtcrn-simple":
-        import os as _os  # noqa: PLC0415 (run-scoped env for _model_candidates)
-
-        _os.environ["MEDIBYTES_GTCRN_MODEL"] = sherpa_path.strip().strip('"')
-        raw["model_path"] = Path(sherpa_path.strip().strip('"'))
-    config = EnhancementConfig(backend=backend, **raw)
-
-    from base_pipeline.audio_clean import clean_audio  # noqa: PLC0415
-    from base_pipeline.stt_extract import run_stt_extract  # noqa: PLC0415
-
-    cleaned = arm_dir / "cleaned.wav"
-    t0 = time.perf_counter()
-    meta = clean_audio(src, cleaned, backend=backend, config=config)
-    t_clean = time.perf_counter() - t0
-    t0 = time.perf_counter()
-    transcript, entities = run_stt_extract(
-        str(cleaned),
-        job_id=_slug(f"{src.stem}-{denoiser}"),
-        use_llm=use_llm,
-        model=model,
-        validate_terms=validate_terms,
-        second_pass=second_pass,
-        llm_model=llm_model,
-    )
-    t_asr = time.perf_counter() - t0
-    try:
-        from base_pipeline.verify import verify as _verify
-
-        entities["verify"] = _verify(transcript, entities)
-    except Exception as err:
-        entities["verify"] = {"facts": [], "summary": {"error": f"{type(err).__name__}: {err}"}}
-    if use_llm:
-        try:
-            from base_pipeline.llm_extract import (canonicalize_discharge as _canon,
-                                                   extract_discharge as _extract_discharge,
-                                                   gate_discharge as _gate, merge_discharge as _merge)
-
-            _raw_d = _extract_discharge(transcript.get("text", ""), transcript.get("normalized_en", ""),
-                                        transcript.get("segments", []), entities["verify"], model=llm_model)
-            _gated_d = _gate(_raw_d, transcript.get("text", ""),
-                             transcript.get("normalized_en", ""), entities["verify"])
-            _locked_d = _canon(_gated_d, entities["verify"])
-            from base_pipeline.llm_extract import stamp_schema as _stamp
-            entities["discharge"] = _stamp(_merge(
-                entities["verify"], _locked_d,
-                transcript.get("text", ""),
-                transcript.get("normalized_en", "")))
-        except Exception as err:
-            entities["discharge"] = {"sections": {k: {"items": []} for k in (
-                "present_illness", "examination_findings", "previous_diagnosis",
-                "plan_of_management", "diet_instructions", "general_instructions")},
-                "provenance": {
-                "llm_engine": f"discharge-skipped ({type(err).__name__}: {err})"}}
-    else:
-        entities["discharge"] = {"sections": {k: {"items": []} for k in (
-            "present_illness", "examination_findings", "previous_diagnosis",
-            "plan_of_management", "diet_instructions", "general_instructions")},
-            "provenance": {
-            "llm_engine": "discharge-skipped (LLM off; tick LLM-primary extraction)"}}
-    try:
-        from base_pipeline.llm_extract import stamp_schema as _stamp_empty
-
-        entities["discharge"] = _stamp_empty(entities["discharge"])
-    except Exception:
-        pass
-    for name, obj in (
-        ("transcript.json", transcript),
-        ("entities.json", entities),
-        ("clean_meta.json", meta),
-        ("verify.json", entities["verify"]),
-        ("discharge.json", entities["discharge"]),
-    ):
-        (arm_dir / name).write_text(
-            json.dumps(obj, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
-    result = {
-        "meta": meta,
-        "transcript": transcript,
-        "entities": entities,
-        "seconds": {"clean": round(t_clean, 2), "asr_extract": round(t_asr, 2)},
-    }
-    (arm_dir / "report.md").write_text(
-        render_report(src, denoiser, result), encoding="utf-8"
-    )
-    return result
+def _run_one_arm(src: Path, arm_dir: Path, denoiser: str, *, sherpa_path: str, **run_kwargs):
+    """`run.run_clip` for one (clip, denoiser) arm, honouring the sherpa model-path override."""
+    config = ui_denoiser_config(BackendId(denoiser), sherpa_path)
+    return run_clip(src, arm_dir, denoiser, config=config, **run_kwargs)
 
 
 def _probe_card(denoiser: str, sherpa_path: str = ""):
@@ -420,11 +322,17 @@ def main():
 
     with st.sidebar:
         st.header("Pipeline knobs (safe subset)")
+        preset = st.selectbox("Preset", UI_PRESETS, index=UI_PRESETS.index(presets.DEFAULT),
+                              help="Named stage selection (base_pipeline/presets.py). Picking one "
+                                   "resets the knobs below; changing a knob is recorded as an override.")
+        cfg = presets.resolve(preset)
+        models = SAFE_MODELS if cfg["model"] in SAFE_MODELS else [cfg["model"], *SAFE_MODELS]
         use_none = st.checkbox("denoiser: none (clean)", value=True)
         use_sherpa = st.checkbox("denoiser: sherpa-gtcrn-simple (noisy)", value=True)
-        model = st.selectbox("STT model", SAFE_MODELS, index=0,
+        model = st.selectbox("STT model", models, index=models.index(cfg["model"]), key=f"model|{preset}",
                              help="medasr default; small-int8 for Hindi/Tamil/Hinglish; mock labels rows is_mock:true")
-        second_pass = st.checkbox("second decoder pass (recover missed drugs)", value=True)
+        second_pass = st.checkbox("second decoder pass (recover missed drugs)",
+                                  value=cfg["second_pass"] is not None, key=f"second_pass|{preset}")
         st.divider()
         _default_sherpa = r"C:\models\gtcrn_simple.onnx" if Path(r"C:\models\gtcrn_simple.onnx").is_file() else ""
         sherpa_path = st.text_input(
@@ -433,10 +341,13 @@ def main():
             help="Leaves repo untouched. Empty = shipped config. Wrong path = hard BACKEND_UNAVAILABLE.",
         )
         with st.expander("Advanced (LLM, optional)"):
-            use_llm = st.checkbox("LLM-primary extraction", value=False)
+            use_llm = st.checkbox("LLM-primary extraction", value=cfg["use_llm"], key=f"use_llm|{preset}")
             llm_url = st.text_input("LLM URL", value="")
             llm_model = st.text_input("LLM model", value="")
-            no_validate = st.checkbox("skip term validation", value=False)
+            no_validate = st.checkbox("skip term validation", value=cfg["validate_terms"] is False,
+                                      key=f"no_validate|{preset}")
+            context_repair = st.checkbox("LLM context repair of RED drug rows", value=cfg["context_repair"],
+                                         key=f"context_repair|{preset}")
         run_btn = st.button("▶ Process", type="primary", use_container_width=True)
 
     uploads = st.file_uploader(
@@ -459,7 +370,15 @@ def main():
         return
     stamp = time.strftime("%Y%m%d-%H%M%S")
     out_root = _RUNS / f"ui-{stamp}"
-    out_root.mkdir(parents=True, exist_ok=True)
+    chosen = {"model": model,
+              "second_pass": (cfg["second_pass"] or "auto") if second_pass else None,
+              "use_llm": use_llm,
+              "validate_terms": False if no_validate else (cfg["validate_terms"] or "auto"),
+              "context_repair": context_repair}
+    manifest.write_manifest(
+        out_root, preset=preset, config=presets.resolve(preset, chosen),
+        overrides={k: v for k, v in chosen.items() if cfg[k] != v}, arms=denoisers,
+        clips=[f.name for f in uploads], argv=[])
     if llm_url.strip():
         import os  # noqa: PLC0415 (run-scoped env mutation, mirrors CLI)
 
@@ -480,10 +399,11 @@ def main():
                 with st.status(f"arm `{denoiser}` — clean → STT → extract…", expanded=False) as s:
                     try:
                         res = _run_one_arm(
-                            src, arm_dir, denoiser, model=model,
-                            second_pass="auto" if second_pass else None,
-                            use_llm=use_llm, validate_terms=False if no_validate else "auto",
-                            llm_model=llm_model.strip() or None, sherpa_path=sherpa_path,
+                            src, arm_dir, denoiser, model=chosen["model"],
+                            second_pass=chosen["second_pass"], use_llm=chosen["use_llm"],
+                            validate_terms=chosen["validate_terms"], context_repair=chosen["context_repair"],
+                            decode=cfg["decode"], llm_model=llm_model.strip() or None,
+                            sherpa_path=sherpa_path,
                         )
                         stored[denoiser] = {"result": res, "arm_dir": arm_dir}
                         s.update(label=f"arm `{denoiser}` done", state="complete")

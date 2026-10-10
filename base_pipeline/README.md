@@ -35,6 +35,26 @@ Per clip and denoiser arm you get `cleaned.wav`, `transcript.json`,
 hit, colour, confidence). `summary.md` indexes the run; `review.csv` has a blank
 `correct (y/n)` column per extracted item, so a manual pass ends with a tally.
 
+## Presets
+
+An approach is a name: `--preset NAME` picks a full stage selection from `presets.py`
+(default `baseline`, what you get with no flags); any flag you type overrides it. Every run writes
+`manifest.json` next to the results: preset, resolved config, the flags you overrode, git commit
+and dirty flag, python and package versions.
+
+| preset | changes from `baseline` | evidence |
+|---|---|---|
+| `baseline` | nothing; the validator runs only if an LLM server is up | the shipped chain |
+| `regex-only` | term validator off, so no LLM is ever called | report arm A/A2 |
+| `no-second-pass` | primary decoder only | `--no-second-pass` |
+| `validator` | LLM term validator forced on (failures noted per row) | report arm B2 |
+| `context-repair` | validator + LLM context repair of RED rows | report arm C3 |
+| `llm` | LLM-primary extraction and the discharge note | not measured |
+| `whisper-medasr` | SNR-gated denoise -> Whisper -> MedASR variant | CLI only |
+
+A preset fixes flags, not code: the report's arms were run on code that has since changed (the
+"guard" fix, the first context-repair version), so the names map to them approximately.
+
 Defaults are for repeatable manual testing: regex extraction, MedASR with the
 automatic `small-int8` second pass (`--no-second-pass` to drop it), and the fuzzy
 validator only if an LLM server is actually serving the model.
