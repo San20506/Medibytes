@@ -1,0 +1,2 @@
+# Python 3.12. Install after base_pipeline/requirements.txt, in a venv dedicated to this arm.
+pyroomacoustics==0.10.1
