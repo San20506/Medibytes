@@ -64,6 +64,9 @@ pip install -r requirements-ui.txt                     # only for app.py
 pip install -r base_pipeline/requirements-server.txt   # only for the HTTP backend
 ```
 
+`rnnoise` and `deepfilternet3` also need `pip install scipy` in this environment. The pinned
+evaluation environment for `eval/` is `eval/requirements-eval.txt`; the test suite below does not need it.
+
 Machine-local data (models, corpora, built native libraries) is found through
 `$MEDIBYTES_EVAL_DATA_ROOT`, default `~/.local/share/medibytes-eval`. Nothing in the repository
 hard-codes a home directory.
@@ -147,8 +150,8 @@ falls back to another backend.
 |---|---|---|
 | `none`, `noisereduce` | none / `noisereduce` | identity control; spectral-gating control |
 | `dpdfnet2-onnx`, `sherpa-gtcrn-simple` | `onnxruntime`, `sherpa-onnx` | model under the data root |
-| `rnnoise` | native library | `denoise_backends/build_rnnoise.sh` builds it with pinned `-march=x86-64-v2`; the adapter pins its SHA-256 |
-| `deepfilternet3` | CPython 3.11 venv at `./venv` | `build_deepfilternet3.sh` builds it from the hashed lock |
+| `rnnoise` | native library, `scipy` | `denoise_backends/build_rnnoise.sh` builds it with pinned `-march=x86-64-v2`; the adapter pins its SHA-256 |
+| `deepfilternet3` | CPython 3.11 venv at `./venv`, plus `scipy` here | `build_deepfilternet3.sh` builds the venv from the hashed lock |
 | `speex-denoise` | built SpeexDSP | under `methods/speexdsp` in the data root |
 | `spectral-subtraction`, `speechbrain-metricgan-plus`, `voicefixer-mode0`, `nemo-se-den-sb-16k` | one package each | `denoise_backends/requirements-<id>.txt`; install into a venv dedicated to the arm |
 | `percepnet`, `speecht5`, `cmsis-dsp` | none | catalog identities with no adapter |
