@@ -1,0 +1,206 @@
+{
+ "meta": {
+  "source": "united-we-care/United-Syn-Med, test split, a disjoint seeded draw of 40 (tar members 601-1200); annotated from the transcriptions BEFORE any pipeline run on these clips; used only for the final held-out check",
+  "authored": "single annotator (Claude), read off each clip's own dataset transcription; no pipeline output seen. NOT clinician-reviewed",
+  "brand": "the invented-or-real product name as spelled in the transcription; scored only at ASR level because the pipeline never turns a brand into a drug row",
+  "drugs": "active substances the sentence names outright; these are what the pipeline is expected to emit",
+  "borderline": "named things that are not clearly a drug row (sweetener, biologic, botanical, amino acid); excluded from headline scores"
+ },
+ "clips": {
+  "SYN_001": {
+   "brand": "Rejoice-od",
+   "drugs": []
+  },
+  "SYN_002": {
+   "brand": "Bevitplus",
+   "drugs": []
+  },
+  "SYN_003": {
+   "brand": "Feriter",
+   "drugs": []
+  },
+  "SYN_004": {
+   "brand": "Tadaflo",
+   "drugs": []
+  },
+  "SYN_005": {
+   "brand": "Pantroz",
+   "drugs": []
+  },
+  "SYN_006": {
+   "brand": "TOBAZEST INJ",
+   "drugs": []
+  },
+  "SYN_007": {
+   "brand": "CAPTOMER",
+   "drugs": []
+  },
+  "SYN_008": {
+   "brand": "Alprasar Forte",
+   "drugs": []
+  },
+  "SYN_009": {
+   "brand": "Depodur",
+   "drugs": []
+  },
+  "SYN_010": {
+   "brand": "Vegefer tab",
+   "drugs": [
+    "feredetate"
+   ]
+  },
+  "SYN_011": {
+   "brand": "PENITAZ",
+   "drugs": []
+  },
+  "SYN_012": {
+   "brand": "INTAVISC-MV-PPF",
+   "drugs": []
+  },
+  "SYN_013": {
+   "brand": null,
+   "drugs": [
+    "cyproheptadine"
+   ]
+  },
+  "SYN_014": {
+   "brand": "ALFORD-I",
+   "drugs": []
+  },
+  "SYN_015": {
+   "brand": null,
+   "drugs": [
+    "tropicamide"
+   ]
+  },
+  "SYN_016": {
+   "brand": null,
+   "drugs": [
+    "pamidronate"
+   ]
+  },
+  "SYN_017": {
+   "brand": null,
+   "drugs": [],
+   "borderline": [
+    "collagen hydrolysate"
+   ]
+  },
+  "SYN_018": {
+   "brand": "ETOSID",
+   "drugs": []
+  },
+  "SYN_019": {
+   "brand": "PEG-ADRIM",
+   "drugs": []
+  },
+  "SYN_020": {
+   "brand": "PANTAMEP",
+   "drugs": []
+  },
+  "SYN_021": {
+   "brand": "enilloring",
+   "drugs": []
+  },
+  "SYN_022": {
+   "brand": "Geriflo-D",
+   "drugs": [
+    "dutasteride"
+   ]
+  },
+  "SYN_023": {
+   "brand": "Calbone tab",
+   "drugs": [
+    "calcium carbonate"
+   ]
+  },
+  "SYN_024": {
+   "brand": "Megalor tab",
+   "drugs": [],
+   "borderline": [
+    "ornithine"
+   ]
+  },
+  "SYN_025": {
+   "brand": "SEROSPA-D",
+   "drugs": []
+  },
+  "SYN_026": {
+   "brand": "PEPRAZ",
+   "drugs": []
+  },
+  "SYN_027": {
+   "brand": null,
+   "drugs": [
+    "betamethasone"
+   ]
+  },
+  "SYN_028": {
+   "brand": null,
+   "drugs": [],
+   "borderline": [
+    "vitamin c"
+   ]
+  },
+  "SYN_029": {
+   "brand": null,
+   "drugs": [],
+   "borderline": [
+    "sesamum indicum"
+   ]
+  },
+  "SYN_030": {
+   "brand": "CLODAX",
+   "drugs": []
+  },
+  "SYN_031": {
+   "brand": "PARMETH",
+   "drugs": []
+  },
+  "SYN_032": {
+   "brand": null,
+   "drugs": [
+    "stavudine",
+    "lamivudine"
+   ]
+  },
+  "SYN_033": {
+   "brand": "VITEXID SYR",
+   "drugs": []
+  },
+  "SYN_034": {
+   "brand": "SILOMAX-D",
+   "drugs": []
+  },
+  "SYN_035": {
+   "brand": "RAVER-D",
+   "drugs": []
+  },
+  "SYN_036": {
+   "brand": "L-Cet M Tab",
+   "drugs": [
+    "montelukast"
+   ]
+  },
+  "SYN_037": {
+   "brand": "UV-LUBE UNIMS",
+   "drugs": []
+  },
+  "SYN_038": {
+   "brand": null,
+   "drugs": [
+    "simeprevir"
+   ]
+  },
+  "SYN_039": {
+   "brand": null,
+   "drugs": [
+    "vinblastine"
+   ]
+  },
+  "SYN_040": {
+   "brand": "MANZA",
+   "drugs": []
+  }
+ }
+}

@@ -44,7 +44,7 @@ def _number_present(text: str, value: float) -> bool:
     decimal forms are matched explicitly rather than counted as misses.
     """
 
-    from demo.stt_extract import numwords_to_digits
+    from base_pipeline.stt_extract import numwords_to_digits
 
     haystack = numwords_to_digits(text)
     if float(value).is_integer():

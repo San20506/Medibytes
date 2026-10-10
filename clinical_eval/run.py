@@ -4,10 +4,10 @@ Each component is exercised on the input it would get in production, and also on
 *perfect* input where that is possible, so a failure can be attributed to the
 stage that caused it rather than to the cascade:
 
-  C1 ingest/clean   `demo.audio_clean.clean_audio`, per denoiser arm
-  C2 STT            `demo.stt_extract.transcribe`, per decoder, on C1's output
-  C3 normalize      `demo.stt_extract.normalize_text` on the REFERENCE text
-  C4 extract        `demo.stt_extract.extract_entities` on the REFERENCE text
+  C1 ingest/clean   `base_pipeline.audio_clean.clean_audio`, per denoiser arm
+  C2 STT            `base_pipeline.stt_extract.transcribe`, per decoder, on C1's output
+  C3 normalize      `base_pipeline.stt_extract.normalize_text` on the REFERENCE text
+  C4 extract        `base_pipeline.stt_extract.extract_entities` on the REFERENCE text
                     (the extractor's ceiling: perfect transcript in)
   C5 end to end     the real cascade, audio -> clean -> STT -> normalize -> extract
 
@@ -46,7 +46,7 @@ GTCRN = {
 
 
 def _clean(source: Path, destination: Path, denoiser: str) -> dict[str, Any]:
-    from demo.audio_clean import BackendId, EnhancementConfig, clean_audio
+    from base_pipeline.audio_clean import BackendId, EnhancementConfig, clean_audio
 
     raw = dict(GTCRN) if denoiser != "none" else {"variant_id": "none"}
     if "model_path" in raw:
@@ -70,22 +70,8 @@ def _clean(source: Path, destination: Path, denoiser: str) -> dict[str, Any]:
     }
 
 
-def _ensure_demo_on_path() -> None:
-    """`demo/` itself, not just the repo root, must be importable.
-
-    `demo.stt_extract` reaches `medasr-lm` with a bare `from medasr_lm import
-    ...`, and `demo/medasr_lm.py` imports `stt_extract` the same flat way, so
-    without this every `medasr-lm` arm dies as `ModuleNotFoundError` — and
-    under `strict=True` that is a failed arm on every clip, not a fallback.
-    """
-    demo = str(Path(__file__).resolve().parents[1] / "demo")
-    if demo not in sys.path:
-        sys.path.insert(0, demo)
-
-
 def _transcribe(wav: Path, decoder: str, clip_id: str) -> dict[str, Any]:
-    _ensure_demo_on_path()
-    from demo.stt_extract import transcribe
+    from base_pipeline.stt_extract import transcribe
 
     started = time.perf_counter()
     try:
@@ -103,7 +89,7 @@ def _transcribe(wav: Path, decoder: str, clip_id: str) -> dict[str, Any]:
 
 
 def _extract(text: str) -> dict[str, Any]:
-    from demo.stt_extract import extract_entities, normalize_text
+    from base_pipeline.stt_extract import extract_entities, normalize_text
 
     normalized = normalize_text(text)
     entities = extract_entities(text, normalized["normalized_en"], [])

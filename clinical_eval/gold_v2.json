@@ -1,0 +1,1857 @@
+{
+ "clips": {
+  "MB_MED_001_clean": {
+   "allergies": [],
+   "drugs": [
+    {
+     "borderline": false,
+     "dose": 650,
+     "name": "paracetamol",
+     "negated": false,
+     "quote": "paracetamol six hundred and fifty milligrams for fever",
+     "source": "unanimous",
+     "unit": "mg",
+     "votes": "3/3"
+    },
+    {
+     "borderline": false,
+     "components": [
+      "amoxicillin",
+      "clavulanic acid"
+     ],
+     "name": "amoxicillin with clavulanic acid",
+     "negated": false,
+     "quote": "amoxicillin with clavulanic acid as advised by the treating physician",
+     "source": "adjudicated",
+     "votes": "1/3"
+    }
+   ],
+   "vitals": [
+    {
+     "audio_confirmed": true,
+     "historic": false,
+     "kind": "temp_f",
+     "quote": "the patient's temperature is one hundred and one degrees Fahrenheit",
+     "source": "unanimous",
+     "unit": "F",
+     "value": 101,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": true,
+     "diastolic": 85,
+     "historic": false,
+     "kind": "bp",
+     "quote": "Blood pressure is one hundred and thirty over eighty-five millimetres of mercury",
+     "source": "unanimous",
+     "systolic": 130,
+     "unit": "mmHg",
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": true,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "pulse rate is ninety-two beats per minute",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 92,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": true,
+     "historic": false,
+     "kind": "rr",
+     "quote": "respiratory rate is twenty-two breaths per minute",
+     "source": "unanimous",
+     "unit": "breaths/min",
+     "value": 22,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": true,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "oxygen saturation is ninety-four percent on room air",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 94,
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_002_clean": {
+   "allergies": [],
+   "drugs": [
+    {
+     "borderline": false,
+     "dose": 5,
+     "name": "amlodipine",
+     "negated": false,
+     "quote": "She's been advised to continue amlodipine five milligrams once daily for now.",
+     "source": "unanimous",
+     "unit": "mg",
+     "votes": "3/3"
+    }
+   ],
+   "vitals": [
+    {
+     "audio_confirmed": true,
+     "diastolic": 95,
+     "historic": false,
+     "kind": "bp",
+     "quote": "her blood pressure was around one fifty over ninety-five",
+     "source": "unanimous",
+     "systolic": 150,
+     "unit": "mmHg",
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": true,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "Her pulse rate was eighty-six beats per minute",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 86,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": true,
+     "historic": false,
+     "kind": "temp_f",
+     "quote": "temperature was ninety-eight point six degrees Fahrenheit",
+     "source": "unanimous",
+     "unit": "F",
+     "value": 98.6,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": true,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "oxygen saturation was ninety-eight percent on room air",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 98,
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_003_clean": {
+   "allergies": [],
+   "drugs": [],
+   "vitals": [
+    {
+     "audio_confirmed": true,
+     "diastolic": 90,
+     "historic": false,
+     "kind": "bp",
+     "quote": "His blood pressure is one sixty over ninety",
+     "source": "unanimous",
+     "systolic": 160,
+     "unit": "mmHg",
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": true,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "pulse rate is eighty-eight beats per minute",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 88,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": true,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "oxygen saturation is ninety-seven percent on room air",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 97,
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_004_clean": {
+   "allergies": [],
+   "drugs": [
+    {
+     "borderline": false,
+     "name": "aspirin",
+     "negated": false,
+     "quote": "The patient has been given aspirin as advised by the treating physician",
+     "source": "unanimous",
+     "votes": "3/3"
+    }
+   ],
+   "vitals": [
+    {
+     "audio_confirmed": true,
+     "diastolic": 90,
+     "historic": false,
+     "kind": "bp",
+     "quote": "his blood pressure was around one forty-five over ninety",
+     "source": "unanimous",
+     "systolic": 145,
+     "unit": "mmHg",
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": true,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "pulse rate was ninety-six beats per minute",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 96,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": true,
+     "historic": false,
+     "kind": "rr",
+     "quote": "respiratory rate was twenty breaths per minute",
+     "source": "unanimous",
+     "unit": "breaths/min",
+     "value": 20,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": true,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "oxygen saturation was ninety-five percent on room air",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 95,
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_005_clean": {
+   "allergies": [
+    {
+     "negated": true,
+     "quote": "She doesn't remember having any previous allergy to penicillin or other antibiotics.",
+     "source": "unanimous",
+     "substance": "penicillin",
+     "votes": "3/3"
+    },
+    {
+     "negated": false,
+     "quote": "document amoxicillin as a suspected drug allergy in her medical record",
+     "source": "unanimous",
+     "substance": "amoxicillin",
+     "votes": "3/3"
+    },
+    {
+     "borderline": true,
+     "kind": "allergy",
+     "name": "antibiotics",
+     "negated": true,
+     "quote": "She doesn't remember having any previous allergy to penicillin or other antibiotics",
+     "source": "adjudicated",
+     "substance": "antibiotics",
+     "votes": "1/3"
+    }
+   ],
+   "drugs": [
+    {
+     "borderline": false,
+     "name": "amoxicillin",
+     "negated": true,
+     "quote": "document amoxicillin as a suspected drug allergy in her medical record so that it isn't accidentally given again",
+     "source": "unanimous",
+     "votes": "3/3"
+    },
+    {
+     "borderline": true,
+     "name": "adrenaline",
+     "negated": false,
+     "quote": "we'll need immediate emergency management, including intramuscular adrenaline as clinically indicated",
+     "source": "unanimous",
+     "votes": "3/3"
+    }
+   ],
+   "vitals": [
+    {
+     "audio_confirmed": true,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "Her oxygen saturation is ninety-six percent",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 96,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": true,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "pulse is around one hundred and eight",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 108,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": true,
+     "diastolic": 70,
+     "historic": false,
+     "kind": "bp",
+     "quote": "her blood pressure is one ten over seventy",
+     "source": "unanimous",
+     "systolic": 110,
+     "unit": "mmHg",
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_006_clean": {
+   "allergies": [],
+   "drugs": [
+    {
+     "borderline": false,
+     "name": "insulin",
+     "negated": false,
+     "quote": "He normally takes insulin before meals and also takes metformin for type two diabetes mellitus.",
+     "source": "unanimous",
+     "votes": "3/3"
+    },
+    {
+     "borderline": false,
+     "name": "metformin",
+     "negated": false,
+     "quote": "He normally takes insulin before meals and also takes metformin for type two diabetes mellitus.",
+     "source": "unanimous",
+     "votes": "3/3"
+    }
+   ],
+   "vitals": [
+    {
+     "audio_confirmed": null,
+     "historic": true,
+     "kind": "glucose",
+     "quote": "it was fifty-four milligrams per decilitre",
+     "source": "unanimous",
+     "unit": "mg/dL",
+     "value": 54,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "glucose",
+     "quote": "we checked his glucose again and it had increased to seventy-two",
+     "source": "unanimous",
+     "unit": "mg/dL",
+     "value": 72,
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_007_clean": {
+   "allergies": [],
+   "drugs": [
+    {
+     "borderline": false,
+     "name": "paracetamol",
+     "negated": false,
+     "quote": "paracetamol has been given for pain as prescribed",
+     "source": "unanimous",
+     "votes": "3/3"
+    },
+    {
+     "borderline": false,
+     "name": "ceftriaxone",
+     "negated": false,
+     "quote": "Ceftriaxone is also continuing as per the post-operative medication order",
+     "source": "unanimous",
+     "votes": "3/3"
+    }
+   ],
+   "vitals": [
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "temp_f",
+     "quote": "His temperature is one hundred point two degrees Fahrenheit",
+     "source": "unanimous",
+     "unit": "F",
+     "value": 100.2,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "diastolic": 78,
+     "historic": false,
+     "kind": "bp",
+     "quote": "blood pressure is one twenty-four over seventy-eight",
+     "source": "unanimous",
+     "systolic": 124,
+     "unit": "mmHg",
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "pulse is ninety-eight beats per minute",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 98,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "rr",
+     "quote": "respiratory rate is eighteen",
+     "source": "unanimous",
+     "unit": "breaths/min",
+     "value": 18,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "his oxygen saturation is ninety-seven percent on room air",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 97,
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_008_clean": {
+   "allergies": [],
+   "drugs": [
+    {
+     "borderline": false,
+     "name": "ceftriaxone",
+     "negated": false,
+     "quote": "She's currently receiving intravenous ceftriaxone and azithromycin as prescribed.",
+     "source": "unanimous",
+     "votes": "3/3"
+    },
+    {
+     "borderline": false,
+     "name": "azithromycin",
+     "negated": false,
+     "quote": "She's currently receiving intravenous ceftriaxone and azithromycin as prescribed.",
+     "source": "unanimous",
+     "votes": "3/3"
+    },
+    {
+     "borderline": true,
+     "dose": 6,
+     "historic": false,
+     "kind": "drug",
+     "name": "oxygen",
+     "negated": false,
+     "quote": "She's receiving oxygen through a face mask at six litres per minute",
+     "source": "adjudicated",
+     "substance": "oxygen",
+     "unit": "L/min",
+     "votes": "3/3"
+    }
+   ],
+   "vitals": [
+    {
+     "audio_confirmed": null,
+     "historic": true,
+     "kind": "spo2",
+     "quote": "Her oxygen saturation was around eighty-six percent on room air at admission",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 86,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "her saturation is maintaining around ninety-five percent",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 95,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "diastolic": 72,
+     "historic": false,
+     "kind": "bp",
+     "quote": "Her latest blood pressure is one eighteen over seventy-two",
+     "source": "unanimous",
+     "systolic": 118,
+     "unit": "mmHg",
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "pulse is ninety-four",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 94,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "rr",
+     "quote": "respiratory rate is twenty-four",
+     "source": "unanimous",
+     "unit": "breaths/min",
+     "value": 24,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "temp_f",
+     "quote": "temperature is ninety-nine point eight degrees Fahrenheit",
+     "source": "unanimous",
+     "unit": "F",
+     "value": 99.8,
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_009_clean": {
+   "allergies": [],
+   "drugs": [
+    {
+     "borderline": false,
+     "name": "normal saline",
+     "negated": false,
+     "quote": "kept the intravenous line open with normal saline",
+     "source": "unanimous",
+     "votes": "3/3"
+    },
+    {
+     "borderline": true,
+     "dose": 1,
+     "historic": false,
+     "kind": "drug",
+     "name": "packed red blood cells",
+     "negated": true,
+     "quote": "we started one unit of packed red blood cells about forty minutes ago",
+     "source": "adjudicated",
+     "substance": "packed red blood cells",
+     "unit": "unit",
+     "votes": "1/3"
+    }
+   ],
+   "vitals": [
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "temp_f",
+     "quote": "Her temperature has increased to one hundred and one point four degrees Fahrenheit.",
+     "source": "unanimous",
+     "unit": "F",
+     "value": 101.4,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "Her pulse is one hundred and six beats per minute",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 106,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "diastolic": 65,
+     "historic": false,
+     "kind": "bp",
+     "quote": "blood pressure is one hundred over sixty-five",
+     "source": "unanimous",
+     "systolic": 100,
+     "unit": "mmHg",
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "oxygen saturation is ninety-six percent on room air",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 96,
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_010_clean": {
+   "allergies": [],
+   "drugs": [
+    {
+     "borderline": false,
+     "name": "sodium valproate",
+     "negated": false,
+     "quote": "His family says he's been prescribed sodium valproate for epilepsy, but he may have missed some doses over the last few days.",
+     "source": "unanimous",
+     "votes": "3/3"
+    }
+   ],
+   "vitals": [
+    {
+     "audio_confirmed": null,
+     "diastolic": 80,
+     "historic": false,
+     "kind": "bp",
+     "quote": "His current blood pressure is one twenty-eight over eighty",
+     "source": "unanimous",
+     "systolic": 128,
+     "unit": "mmHg",
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "pulse is ninety beats per minute",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 90,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "oxygen saturation is ninety-eight percent",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 98,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "glucose",
+     "quote": "his blood glucose is one hundred and six milligrams per decilitre",
+     "source": "unanimous",
+     "unit": "mg/dL",
+     "value": 106,
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_011_medium": {
+   "allergies": [],
+   "drugs": [
+    {
+     "borderline": false,
+     "name": "normal saline",
+     "negated": false,
+     "quote": "He's currently receiving intravenous normal saline",
+     "source": "unanimous",
+     "votes": "3/3"
+    }
+   ],
+   "vitals": [
+    {
+     "audio_confirmed": null,
+     "diastolic": 58,
+     "historic": false,
+     "kind": "bp",
+     "quote": "His latest blood pressure is ninety-two over fifty-eight.",
+     "source": "unanimous",
+     "systolic": 92,
+     "unit": "mmHg",
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "His pulse is one hundred and four beats per minute",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 104,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "temp_f",
+     "quote": "temperature is one hundred point six degrees Fahrenheit",
+     "source": "unanimous",
+     "unit": "F",
+     "value": 100.6,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "rr",
+     "quote": "respiratory rate is twenty-two",
+     "source": "unanimous",
+     "unit": "breaths/min",
+     "value": 22,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "oxygen saturation is ninety-five percent on room air",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 95,
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_012_medium": {
+   "allergies": [],
+   "drugs": [],
+   "vitals": [
+    {
+     "audio_confirmed": null,
+     "diastolic": 84,
+     "historic": false,
+     "kind": "bp",
+     "quote": "His blood pressure is one thirty-six over eighty-four",
+     "source": "unanimous",
+     "systolic": 136,
+     "unit": "mmHg",
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "pulse is ninety-four beats per minute",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 94,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "temp_f",
+     "quote": "temperature is ninety-eight point eight degrees Fahrenheit",
+     "source": "unanimous",
+     "unit": "F",
+     "value": 98.8,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "oxygen saturation is ninety-eight percent on room air",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 98,
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_013_medium": {
+   "allergies": [],
+   "drugs": [
+    {
+     "borderline": true,
+     "name": "oxygen",
+     "negated": false,
+     "quote": "We've started oxygen as prescribed",
+     "source": "unanimous",
+     "votes": "3/3"
+    },
+    {
+     "borderline": false,
+     "name": "salbutamol",
+     "negated": false,
+     "quote": "She has already received nebulisation with salbutamol and ipratropium bromide.",
+     "source": "unanimous",
+     "votes": "3/3"
+    },
+    {
+     "borderline": false,
+     "name": "ipratropium bromide",
+     "negated": false,
+     "quote": "She has already received nebulisation with salbutamol and ipratropium bromide.",
+     "source": "unanimous",
+     "votes": "3/3"
+    }
+   ],
+   "vitals": [
+    {
+     "audio_confirmed": null,
+     "historic": true,
+     "kind": "spo2",
+     "quote": "When she arrived, her oxygen saturation was ninety-one percent on room air",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 91,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": true,
+     "kind": "rr",
+     "quote": "her respiratory rate was twenty-eight breaths per minute",
+     "source": "unanimous",
+     "unit": "breaths/min",
+     "value": 28,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "her saturation is now around ninety-five percent",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 95,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "Her pulse is one hundred and six",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 106,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "diastolic": 76,
+     "historic": false,
+     "kind": "bp",
+     "quote": "blood pressure is one twenty-two over seventy-six",
+     "source": "unanimous",
+     "systolic": 122,
+     "unit": "mmHg",
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_014_medium": {
+   "allergies": [],
+   "drugs": [
+    {
+     "borderline": false,
+     "name": "metformin",
+     "negated": false,
+     "quote": "The patient normally takes metformin for diabetes, but he says he missed his medicine yesterday.",
+     "source": "unanimous",
+     "votes": "3/3"
+    }
+   ],
+   "vitals": [
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "glucose",
+     "quote": "it is three hundred and twenty milligrams per decilitre",
+     "source": "unanimous",
+     "unit": "mg/dL",
+     "value": 320,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "diastolic": 80,
+     "historic": false,
+     "kind": "bp",
+     "quote": "His blood pressure is one thirty over eighty.",
+     "source": "unanimous",
+     "systolic": 130,
+     "unit": "mmHg",
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "His pulse is ninety beats per minute",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 90,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "his oxygen saturation is ninety-eight percent",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 98,
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_015_medium": {
+   "allergies": [],
+   "drugs": [
+    {
+     "borderline": false,
+     "name": "normal saline",
+     "negated": false,
+     "quote": "We have started intravenous normal saline.",
+     "source": "unanimous",
+     "votes": "3/3"
+    },
+    {
+     "borderline": false,
+     "name": "ondansetron",
+     "negated": false,
+     "quote": "She has also been given ondansetron for vomiting as prescribed.",
+     "source": "unanimous",
+     "votes": "3/3"
+    }
+   ],
+   "vitals": [
+    {
+     "audio_confirmed": null,
+     "diastolic": 65,
+     "historic": false,
+     "kind": "bp",
+     "quote": "Her blood pressure is one hundred over sixty-five.",
+     "source": "unanimous",
+     "systolic": 100,
+     "unit": "mmHg",
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "Her pulse is ninety-eight beats per minute",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 98,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "temp_f",
+     "quote": "temperature is ninety-nine point five degrees Fahrenheit",
+     "source": "unanimous",
+     "unit": "F",
+     "value": 99.5,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "oxygen saturation is ninety-eight percent",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 98,
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_016_medium": {
+   "allergies": [],
+   "drugs": [
+    {
+     "borderline": false,
+     "name": "paracetamol",
+     "negated": false,
+     "quote": "paracetamol has been given for the fever as prescribed",
+     "source": "unanimous",
+     "votes": "3/3"
+    }
+   ],
+   "vitals": [
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "temp_f",
+     "quote": "Her temperature is one hundred point four degrees Fahrenheit.",
+     "source": "unanimous",
+     "unit": "F",
+     "value": 100.4,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "diastolic": 75,
+     "historic": false,
+     "kind": "bp",
+     "quote": "Her blood pressure is one fifteen over seventy-five",
+     "source": "unanimous",
+     "systolic": 115,
+     "unit": "mmHg",
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "pulse is ninety-six beats per minute",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 96,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "oxygen saturation is ninety-eight percent",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 98,
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_017_medium": {
+   "allergies": [],
+   "drugs": [
+    {
+     "borderline": false,
+     "name": "paracetamol",
+     "negated": false,
+     "quote": "Paracetamol has been given for pain as prescribed",
+     "source": "unanimous",
+     "votes": "3/3"
+    },
+    {
+     "borderline": false,
+     "name": "ondansetron",
+     "negated": false,
+     "quote": "ondansetron has been given for nausea",
+     "source": "unanimous",
+     "votes": "3/3"
+    }
+   ],
+   "vitals": [
+    {
+     "audio_confirmed": null,
+     "diastolic": 78,
+     "historic": false,
+     "kind": "bp",
+     "quote": "Her blood pressure is one twenty over seventy-eight.",
+     "source": "unanimous",
+     "systolic": 120,
+     "unit": "mmHg",
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "Her pulse is eighty-four beats per minute",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 84,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "temp_f",
+     "quote": "temperature is ninety-eight point four degrees Fahrenheit",
+     "source": "unanimous",
+     "unit": "F",
+     "value": 98.4,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "oxygen saturation is ninety-nine percent",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 99,
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_018_medium": {
+   "allergies": [],
+   "drugs": [
+    {
+     "borderline": true,
+     "name": "iron",
+     "negated": false,
+     "quote": "She has been advised to take iron supplements as prescribed.",
+     "source": "unanimous",
+     "votes": "3/3"
+    }
+   ],
+   "vitals": [
+    {
+     "audio_confirmed": null,
+     "diastolic": 70,
+     "historic": false,
+     "kind": "bp",
+     "quote": "Her blood pressure is one ten over seventy.",
+     "source": "unanimous",
+     "systolic": 110,
+     "unit": "mmHg",
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "Her pulse is ninety-four beats per minute",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 94,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "temp_f",
+     "quote": "temperature is ninety-eight point six degrees Fahrenheit",
+     "source": "unanimous",
+     "unit": "F",
+     "value": 98.6,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "oxygen saturation is ninety-eight percent on room air",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 98,
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_019_medium": {
+   "allergies": [],
+   "drugs": [
+    {
+     "borderline": false,
+     "name": "paracetamol",
+     "negated": false,
+     "quote": "Paracetamol has been given for pain as prescribed.",
+     "source": "unanimous",
+     "votes": "3/3"
+    }
+   ],
+   "vitals": [
+    {
+     "audio_confirmed": null,
+     "diastolic": 80,
+     "historic": false,
+     "kind": "bp",
+     "quote": "His blood pressure is one thirty-five over eighty.",
+     "source": "unanimous",
+     "systolic": 135,
+     "unit": "mmHg",
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "His pulse is ninety-two beats per minute",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 92,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "temp_f",
+     "quote": "temperature is ninety-eight point five degrees Fahrenheit",
+     "source": "unanimous",
+     "unit": "F",
+     "value": 98.5,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "oxygen saturation is ninety-seven percent on room air",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 97,
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_020_medium": {
+   "allergies": [],
+   "drugs": [
+    {
+     "borderline": false,
+     "name": "levothyroxine",
+     "negated": false,
+     "quote": "She has been advised to continue levothyroxine as prescribed and take it regularly.",
+     "source": "unanimous",
+     "votes": "3/3"
+    }
+   ],
+   "vitals": [
+    {
+     "audio_confirmed": null,
+     "diastolic": 76,
+     "historic": false,
+     "kind": "bp",
+     "quote": "Her blood pressure is one eighteen over seventy-six.",
+     "source": "unanimous",
+     "systolic": 118,
+     "unit": "mmHg",
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "Her pulse is sixty-eight beats per minute",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 68,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "temp_f",
+     "quote": "temperature is ninety-eight point two degrees Fahrenheit",
+     "source": "unanimous",
+     "unit": "F",
+     "value": 98.2,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "oxygen saturation is ninety-nine percent on room air",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 99,
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_021_heavy": {
+   "allergies": [],
+   "drugs": [
+    {
+     "borderline": false,
+     "name": "ceftriaxone",
+     "negated": false,
+     "quote": "He is receiving intravenous antibiotics, including ceftriaxone, as prescribed.",
+     "source": "unanimous",
+     "votes": "3/3"
+    },
+    {
+     "borderline": true,
+     "name": "oxygen",
+     "negated": false,
+     "quote": "I have started oxygen through a face mask as prescribed.",
+     "source": "unanimous",
+     "votes": "3/3"
+    }
+   ],
+   "vitals": [
+    {
+     "audio_confirmed": null,
+     "historic": true,
+     "kind": "spo2",
+     "quote": "His oxygen saturation was ninety-six percent earlier",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 96,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": true,
+     "kind": "spo2",
+     "quote": "it is now eighty-nine percent on room air",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 89,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "rr",
+     "quote": "His respiratory rate is twenty-six breaths per minute.",
+     "source": "unanimous",
+     "unit": "breaths/min",
+     "value": 26,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "His pulse is one hundred and two",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 102,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "diastolic": 75,
+     "historic": false,
+     "kind": "bp",
+     "quote": "blood pressure is one twenty-five over seventy-five",
+     "source": "unanimous",
+     "systolic": 125,
+     "unit": "mmHg",
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "temp_f",
+     "quote": "temperature is one hundred point four degrees Fahrenheit",
+     "source": "unanimous",
+     "unit": "F",
+     "value": 100.4,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "His oxygen saturation has now improved to around ninety-four percent.",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 94,
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_022_heavy": {
+   "allergies": [],
+   "drugs": [
+    {
+     "borderline": false,
+     "name": "paracetamol",
+     "negated": false,
+     "quote": "Paracetamol has been given for the fever as prescribed.",
+     "source": "unanimous",
+     "votes": "3/3"
+    }
+   ],
+   "vitals": [
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "temp_f",
+     "quote": "His temperature is one hundred and two point four degrees Fahrenheit.",
+     "source": "unanimous",
+     "unit": "F",
+     "value": 102.4,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "diastolic": 70,
+     "historic": false,
+     "kind": "bp",
+     "quote": "His blood pressure is one ten over seventy",
+     "source": "unanimous",
+     "systolic": 110,
+     "unit": "mmHg",
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "pulse is one hundred beats per minute",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 100,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "oxygen saturation is ninety-seven percent on room air",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 97,
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_023_heavy": {
+   "allergies": [],
+   "drugs": [
+    {
+     "borderline": false,
+     "name": "paracetamol",
+     "negated": false,
+     "quote": "Paracetamol has been given for fever",
+     "source": "unanimous",
+     "votes": "3/3"
+    }
+   ],
+   "vitals": [
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "temp_f",
+     "quote": "Her temperature is one hundred point eight degrees Fahrenheit.",
+     "source": "unanimous",
+     "unit": "F",
+     "value": 100.8,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "diastolic": 75,
+     "historic": false,
+     "kind": "bp",
+     "quote": "Her blood pressure is one twenty over seventy-five.",
+     "source": "unanimous",
+     "systolic": 120,
+     "unit": "mmHg",
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "Her pulse is ninety-six beats per minute",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 96,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "oxygen saturation is ninety-three percent on room air",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 93,
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_024_heavy": {
+   "allergies": [],
+   "drugs": [
+    {
+     "borderline": false,
+     "name": "normal saline",
+     "negated": false,
+     "quote": "The doctor has advised intravenous normal saline, and the fluids are currently running.",
+     "source": "unanimous",
+     "votes": "3/3"
+    },
+    {
+     "borderline": false,
+     "name": "ondansetron",
+     "negated": false,
+     "quote": "Ondansetron has also been given for vomiting as prescribed.",
+     "source": "unanimous",
+     "votes": "3/3"
+    }
+   ],
+   "vitals": [
+    {
+     "audio_confirmed": null,
+     "diastolic": 56,
+     "historic": false,
+     "kind": "bp",
+     "quote": "Her blood pressure has dropped to eighty-eight over fifty-six.",
+     "source": "unanimous",
+     "systolic": 88,
+     "unit": "mmHg",
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "Her pulse is one hundred and six beats per minute.",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 106,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "temp_f",
+     "quote": "Her temperature is ninety-eight point seven degrees Fahrenheit",
+     "source": "unanimous",
+     "unit": "F",
+     "value": 98.7,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "oxygen saturation is ninety-seven percent on room air",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 97,
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_025_heavy": {
+   "allergies": [],
+   "drugs": [],
+   "vitals": [
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "temp_f",
+     "quote": "His temperature is one hundred point two degrees Fahrenheit.",
+     "source": "unanimous",
+     "unit": "F",
+     "value": 100.2,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "diastolic": 80,
+     "historic": false,
+     "kind": "bp",
+     "quote": "His blood pressure is one twenty-eight over eighty.",
+     "source": "unanimous",
+     "systolic": 128,
+     "unit": "mmHg",
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "His pulse is ninety-eight beats per minute",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 98,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "oxygen saturation is ninety-seven percent on room air",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 97,
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_026_heavy": {
+   "allergies": [],
+   "drugs": [
+    {
+     "borderline": true,
+     "name": "oxygen",
+     "negated": false,
+     "quote": "Oxygen has been started as prescribed.",
+     "source": "unanimous",
+     "votes": "3/3"
+    },
+    {
+     "borderline": false,
+     "name": "salbutamol",
+     "negated": false,
+     "quote": "He has also received nebulisation with salbutamol and ipratropium bromide.",
+     "source": "unanimous",
+     "votes": "3/3"
+    },
+    {
+     "borderline": false,
+     "name": "ipratropium bromide",
+     "negated": false,
+     "quote": "He has also received nebulisation with salbutamol and ipratropium bromide.",
+     "source": "unanimous",
+     "votes": "3/3"
+    }
+   ],
+   "vitals": [
+    {
+     "audio_confirmed": null,
+     "diastolic": 80,
+     "historic": false,
+     "kind": "bp",
+     "quote": "His blood pressure is one thirty over eighty.",
+     "source": "unanimous",
+     "systolic": 130,
+     "unit": "mmHg",
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "His pulse is one hundred beats per minute",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 100,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "rr",
+     "quote": "respiratory rate is twenty-six breaths per minute",
+     "source": "unanimous",
+     "unit": "breaths/min",
+     "value": 26,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "oxygen saturation is ninety percent on room air",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 90,
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_027_heavy": {
+   "allergies": [],
+   "drugs": [],
+   "vitals": [
+    {
+     "audio_confirmed": null,
+     "diastolic": 78,
+     "historic": false,
+     "kind": "bp",
+     "quote": "His blood pressure is one twenty-two over seventy-eight.",
+     "source": "unanimous",
+     "systolic": 122,
+     "unit": "mmHg",
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "His pulse is eighty-six beats per minute",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 86,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "temp_f",
+     "quote": "temperature is ninety-nine point two degrees Fahrenheit",
+     "source": "unanimous",
+     "unit": "F",
+     "value": 99.2,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "oxygen saturation is ninety-eight percent on room air",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 98,
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_028_heavy": {
+   "allergies": [],
+   "drugs": [
+    {
+     "borderline": false,
+     "name": "paracetamol",
+     "negated": false,
+     "quote": "Paracetamol has been given for the headache as prescribed.",
+     "source": "unanimous",
+     "votes": "3/3"
+    }
+   ],
+   "vitals": [
+    {
+     "audio_confirmed": null,
+     "diastolic": 80,
+     "historic": false,
+     "kind": "bp",
+     "quote": "His blood pressure is one twenty-six over eighty.",
+     "source": "unanimous",
+     "systolic": 126,
+     "unit": "mmHg",
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "His pulse is eighty-eight beats per minute",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 88,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "temp_f",
+     "quote": "temperature is ninety-eight point four degrees Fahrenheit",
+     "source": "unanimous",
+     "unit": "F",
+     "value": 98.4,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "oxygen saturation is ninety-eight percent on room air",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 98,
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_029_heavy": {
+   "allergies": [],
+   "drugs": [],
+   "vitals": [
+    {
+     "audio_confirmed": null,
+     "diastolic": 90,
+     "historic": false,
+     "kind": "bp",
+     "quote": "His blood pressure is one fifty over ninety.",
+     "source": "unanimous",
+     "systolic": 150,
+     "unit": "mmHg",
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "His pulse is eighty-eight beats per minute",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 88,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "temp_f",
+     "quote": "temperature is ninety-eight point six degrees Fahrenheit",
+     "source": "unanimous",
+     "unit": "F",
+     "value": 98.6,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "oxygen saturation is ninety-six percent on room air",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 96,
+     "votes": "3/3"
+    }
+   ]
+  },
+  "MB_MED_030_heavy": {
+   "allergies": [],
+   "drugs": [
+    {
+     "borderline": false,
+     "name": "ondansetron",
+     "negated": false,
+     "quote": "Ondansetron has been given for vomiting",
+     "source": "unanimous",
+     "votes": "3/3"
+    }
+   ],
+   "vitals": [
+    {
+     "audio_confirmed": null,
+     "diastolic": 70,
+     "historic": false,
+     "kind": "bp",
+     "quote": "Her blood pressure is one fifteen over seventy.",
+     "source": "unanimous",
+     "systolic": 115,
+     "unit": "mmHg",
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "pulse",
+     "quote": "Her pulse is one hundred beats per minute",
+     "source": "unanimous",
+     "unit": "bpm",
+     "value": 100,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "temp_f",
+     "quote": "temperature is ninety-nine point eight degrees Fahrenheit",
+     "source": "unanimous",
+     "unit": "F",
+     "value": 99.8,
+     "votes": "3/3"
+    },
+    {
+     "audio_confirmed": null,
+     "historic": false,
+     "kind": "spo2",
+     "quote": "oxygen saturation is ninety-seven percent on room air",
+     "source": "unanimous",
+     "unit": "%",
+     "value": 97,
+     "votes": "3/3"
+    }
+   ]
+  }
+ },
+ "meta": {
+  "authored": "3 independent blind annotators per clip -> adjudication -> critic -> 3-skeptic verification; agent-authored, NOT clinician-reviewed",
+  "clips": 30,
+  "sha256_of_clips": "af0127399458b1216205b1415d3d991937baf9639a3a1ecf7cf98ae3291ab045",
+  "source": "reference transcripts only (no pipeline output seen by annotators)"
+ }
+}

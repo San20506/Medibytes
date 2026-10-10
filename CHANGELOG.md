@@ -6,6 +6,53 @@ detail (OpenSpec change, evidence directory, or commit).
 
 ## Unreleased
 
+### Independent ground truth for all 30 clips; allergen-as-order closed (2026-10-08)
+
+**Ground truth (`clinical_eval/gold_v2.json`, loader `gold_v2.py`).** Three independent
+annotators per clip, each given only the reference transcript and a written guideline
+(no pipeline output, no earlier gold), every fact backed by a verbatim quote; facts not
+unanimous went to an adjudicator, then a critic and three skeptics per critic claim. 168
+facts over 30 clips, 161 unanimous at the first round. Agent-authored, **not
+clinician-reviewed**; the truth is the reference transcripts, which are paraphrases of
+the audio (the independent Whisper large-v3 audio cross-check was started but not
+completed). It agrees with the earlier golds on 158 of 162 facts; the differences are
+flagged in the data rather than decided in code: `borderline` (oxygen, iron, a
+conditional drug, a class-level allergy denial), `historic` (a reading the transcript
+supersedes), `components` (a combination product scored as its parts). Content hash is
+recorded in the file and checked by `test_gold_v2.py`.
+
+**Measured on that truth, current pipeline, regex extraction (`runs/v0`):** held-out
+**111/123 = 90.2 %** (clip-cluster bootstrap [84.0, 95.9], Wilson [83.7, 94.3]), drugs
+20/24, vitals 91/99, 13 spurious vital spans. Denoisers lose: `dpdfnet2-onnx` net -5
+facts (0 clips better, 5 worse), `sherpa-gtcrn-simple` net -4 plus 3 spurious drug rows;
+the noisy tiers were not harder than clean here, so this says nothing about truly heavy
+noise. New scorer `clinical_eval/fact_score.py` reads `base_pipeline.run` output folders
+and reports a cluster-bootstrap interval and a paired exact-McNemar comparison between
+runs (a percentage comparison on 123 facts cannot separate anything).
+
+**What the 13 spurious vital spans are.** Not unanchored numerals: wrong-digit readings
+paired with the 8 vitals misses ("pulse is 160" for 106, "100.4" for 101.4, "22/76" for
+122/76). Anchoring cannot fix those; cross-decoder numeric agreement can.
+
+**Allergen-as-order closed (`stt_extract._reconcile_allergens`).** Clip 005 said "she was
+started on amoxicillin" and, in another sentence, "document amoxicillin as a suspected
+drug allergy"; the two were never joined, so the allergen was charted as an active order.
+A drug whose canonical name (mini list, then the national pack's substance bridge, never
+brands) is among the *asserted* allergies now becomes NOT GIVEN, `allergen`, RED, with
+confidence capped; a denied allergy blocks nothing; it re-runs after the second-decoder
+union. Paired against `runs/v0`: exactly one fact changes (+1), none regress, wrong
+polarity 1 -> 0. A deterministic safety rule proven by `test_allergen_polarity.py` (9
+golden cases incl. controls), not a statistical gain (McNemar p = 1.0 on one fact).
+Exact-name only: cross-reactivity (penicillin allergy vs amoxicillin order) is a
+clinical judgement left to review.
+
+**Plan on record.** A researched plan for reaching a defensible >=95 % fact accuracy
+(multi-decoder fact voting, oracle-recall gate, shortlist biasing, fine-tuning, review
+routing) is in `~/.claude/plans/if-you-were-given-optimized-kurzweil.md`. It commits to
+~94 % autonomous (range 92-96) and >=95 % lower bound only *after review* of flagged
+facts; word-level 95 % is not promised. 334 tests pass.
+
+
 ### Second pass also recovers vitals, keyed on the reading not the wording (2026-10-05)
 
 The second decoder pass contributed drug rows only, because de-duplicating
