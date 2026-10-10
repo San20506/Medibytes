@@ -24,7 +24,10 @@ commit that touches behaviour, ignoring only timing fields.
   writes `manifest.json`. The Streamlit page takes its choices from the same registry; its copy of
   `run_clip` is gone.
 - **Nine denoiser arms ported** from their `eval/*` branches into `base_pipeline/denoise_backends/`.
-  Real-backend tests skip with a reason when the runtime is absent; each arm was run under its
+  Seven of them had no shipped config, so only the eval harness could select them; each now has
+  one, pinned to its frozen method config by `tests/test_shipped_configs.py`, and the CLI, server
+  and app can run it. Each arm's tests skip, with the probe's reason, where the arm cannot run
+  (`run.arm_status`); `MEDIBYTES_REQUIRE_ARMS` makes that a failure. Each arm was run under its
   original interpreter. `build_rnnoise.sh` no longer uses `-march=native`: the compiled wrapper is
   pinned by digest, the new build differs from the old by 1 LSB on the pilot clips, and the old
   library is kept as `librnnoise_medibytes.so.native-e066ae51`. Frozen method configs keep

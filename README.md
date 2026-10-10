@@ -174,8 +174,10 @@ Run a heavy arm under its own interpreter, e.g.
 python -m pytest tests base_pipeline clinical_eval eval -q -rs
 ```
 
-Real-backend tests for an arm skip, with the reason shown by `-rs`, when that arm's runtime is not
-installed; run them under the arm's own interpreter to exercise it.
+An arm's tests skip, with the probe's reason shown by `-rs`, where that arm cannot run (its package,
+model or built library is missing), so a fresh clone passes. Run them under the arm's own interpreter
+to exercise it, and set `MEDIBYTES_REQUIRE_ARMS=<ids|all>` on a machine that has the arm so an
+unavailable one fails instead of skipping.
 
 ## Known limits
 
