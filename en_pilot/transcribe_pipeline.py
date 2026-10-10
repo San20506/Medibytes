@@ -57,7 +57,7 @@ class PipelineRunError(RuntimeError):
 def _clean_one(task: tuple[str, str, str, str]) -> dict[str, Any]:
     """Run `clean_audio` for one (clip, arm). Returns the outcome, never raises."""
 
-    from demo.audio_clean import BackendId, EnhancementConfig, clean_audio
+    from base_pipeline.audio_clean import BackendId, EnhancementConfig, clean_audio
 
     condition_id, arm, in_path, out_path = task
     raw = dict(BACKEND_CONFIGS[arm])
@@ -110,7 +110,7 @@ def _tasks(data_root: Path, arms: Sequence[str], work_root: Path) -> list[tuple[
 def run(
     data_root: Path, *, arms: Sequence[str], workers: int, work_root: Path
 ) -> dict[str, Any]:
-    from demo.stt_extract import normalize_text, transcribe
+    from base_pipeline.stt_extract import normalize_text, transcribe
 
     clean_bases = {path.stem for path in sorted((data_root / config.CLEAN_DIR).glob("*.wav"))}
     tasks = _tasks(data_root, arms, work_root)

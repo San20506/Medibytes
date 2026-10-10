@@ -393,7 +393,7 @@ def _wer(reference: Sequence[str], hypothesis: Sequence[str]) -> dict[str, objec
 
 
 def frozen_normalize(text: str) -> str:
-    from demo.stt_extract import normalize_text
+    from base_pipeline.stt_extract import normalize_text
 
     return str(normalize_text(text)["normalized_en"])
 

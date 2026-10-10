@@ -7,7 +7,7 @@ CTC model driven by torch, and `torch.cuda.is_available()` is the honest test.
 The audio is not re-enhanced.  Every arm reads the exact PCM16 files the n=40
 study already wrote under `en-pilot-run/enhance-<backend>/`, so a MedASR row and
 a Whisper row for the same `(condition_id, backend)` are the same bytes decoded
-twice.  Hypotheses go through `demo.stt_extract.normalize_text`, the same
+twice.  Hypotheses go through `base_pipeline.stt_extract.normalize_text`, the same
 function `en_pilot.transcribe` uses, so the two decoders are scored by one rule.
 """
 
@@ -109,7 +109,7 @@ def build_pipeline(device: str) -> Any:
 def run(
     data_root: Path, *, arms: Sequence[str], device: str, batch_size: int
 ) -> dict[str, Any]:
-    from demo.stt_extract import medasr_detokenize, normalize_text
+    from base_pipeline.stt_extract import medasr_detokenize, normalize_text
 
     jobs = load_jobs(data_root, arms)
     out_path = data_root / config.OUT_DIR / f"transcripts-{DECODER_ID}.jsonl"

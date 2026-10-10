@@ -22,7 +22,7 @@
     "idempotency_reuse_enabled": false
   },
   "source_files": [
-    "demo/stt_extract.py",
-    "demo/assets/drug_list_mini.json"
+    "base_pipeline/stt_extract.py",
+    "base_pipeline/assets/drug_list_mini.json"
   ]
 }

@@ -2,13 +2,13 @@
 
 `evidence/matrix-v2/matrix_eval.py:80-87` inserted a different worktree into
 `sys.path` from inside a `ThreadPoolExecutor` worker while its own comment says
-"One repo per PROCESS, never per thread" — `sys.modules` caches the first `demo`
+"One repo per PROCESS, never per thread" — `sys.modules` caches the first `base_pipeline`
 package, so after the first backend every later one would silently run the wrong
 adapter. Its `enhance-all.csv` had no `actual_backend` column, so a mis-dispatch
 would have been invisible in the shipped results.
 
 This module therefore runs one backend per invocation, prepends exactly one
-repository root to `sys.path` before any `demo` import, and records
+repository root to `sys.path` before any `base_pipeline` import, and records
 `actual_backend`/`variant_id` read off the returned `EnhancementOutput` for every
 row so a mis-dispatch is visible in the artefact rather than inferable only from
 a comment.
@@ -149,14 +149,14 @@ def check_backend(backend: str, repo_override: str | None) -> str:
 
 
 def activate_repo(repo_root: str) -> None:
-    """Put exactly one repository on the path, before `demo` is ever imported."""
+    """Put exactly one repository on the path, before `base_pipeline` is ever imported."""
 
     if repo_root in sys.path:
         sys.path.remove(repo_root)
     sys.path.insert(0, repo_root)
-    if "demo" in sys.modules:
+    if "base_pipeline" in sys.modules:
         raise EnhanceError(
-            "a `demo` package is already imported; refusing to mix repositories"
+            "a `base_pipeline` package is already imported; refusing to mix repositories"
         )
 
 
@@ -166,7 +166,7 @@ def enhance_one(
     output_dir: Path,
     denoise: Any,
 ) -> dict[str, Any]:
-    from demo.denoise import BackendId, EnhancementConfig
+    from base_pipeline.denoise import BackendId, EnhancementConfig
 
     request = EnhancementConfig(
         backend=BackendId(spec.backend),
@@ -237,7 +237,7 @@ def run(
 ) -> dict[str, Any]:
     repo_root = check_backend(backend, repo_override)
     activate_repo(repo_root)
-    from demo import denoise
+    from base_pipeline import denoise
 
     spec = load_method_spec(backend, data_root)
     conditions = load_conditions(data_root)

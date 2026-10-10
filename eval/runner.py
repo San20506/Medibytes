@@ -377,10 +377,10 @@ def downstream_code_sha256(config: Mapping[str, Any]) -> str:
     return _combined_sha256(paths)
 
 def enhancement_code_sha256() -> str:
-    return _combined_sha256((REPO_ROOT / "demo/audio_clean.py", REPO_ROOT / "demo/denoise.py"))
+    return _combined_sha256((REPO_ROOT / "base_pipeline/audio_clean.py", REPO_ROOT / "base_pipeline/denoise.py"))
 
 def adapter_source_sha256(method: str) -> str | None:
-    path = REPO_ROOT / "demo" / "denoise_backends" / f"{method.replace('-', '_')}.py"
+    path = REPO_ROOT / "base_pipeline" / "denoise_backends" / f"{method.replace('-', '_')}.py"
     if path.is_symlink():
         raise RunnerError("method adapter source must not be a symlink")
     if not path.is_file():
@@ -489,7 +489,7 @@ def load_method_spec(method: str, data_root: Path) -> dict[str, Any]:
 
 
 def _enhancement_config(method_spec: Mapping[str, Any]):
-    from demo.denoise import BackendId, EnhancementConfig
+    from base_pipeline.denoise import BackendId, EnhancementConfig
 
     config = method_spec["config"]
     return EnhancementConfig(
@@ -503,7 +503,7 @@ def _enhancement_config(method_spec: Mapping[str, Any]):
 
 
 def _backend_probe(method_spec: Mapping[str, Any]):
-    module_name = "demo.denoise_backends." + method_spec["backend"].replace("-", "_")
+    module_name = "base_pipeline.denoise_backends." + method_spec["backend"].replace("-", "_")
     try:
         module = importlib.import_module(module_name)
     except (ImportError, ModuleNotFoundError) as error:
@@ -539,7 +539,7 @@ def preflight_method(
         raise BackendUnavailable(
             f"BACKEND_UNAVAILABLE: {method}: {probe_data.get('reason') or 'probe unavailable'}"
         )
-    from demo.denoise import run_backend
+    from base_pipeline.denoise import run_backend
 
     time_axis = np.arange(TARGET_SAMPLE_RATE, dtype=np.float64) / TARGET_SAMPLE_RATE
     smoke_audio = (0.1 * np.sin(2.0 * np.pi * 220.0 * time_axis)).astype(np.float32)
@@ -645,7 +645,7 @@ def validate_real_transcript(
     normalized_text = transcript.get("normalized_en")
     if not isinstance(text, str) or not isinstance(normalized_text, str):
         raise RunnerError("strict transcript text and normalized_en must be strings")
-    from demo.stt_extract import normalize_text
+    from base_pipeline.stt_extract import normalize_text
 
     expected_normalization = normalize_text(text)
     if normalized_text != expected_normalization["normalized_en"]:
@@ -960,9 +960,9 @@ def _error_record(error: BaseException, roots: Sequence[Path]) -> dict[str, str]
 
 
 def _worker_payload(spec: Mapping[str, Any]) -> dict[str, Any]:
-    from demo.audio_clean import clean_audio
-    from demo.denoise import BackendId, EnhancementConfig
-    from demo.stt_extract import run_stt_extract
+    from base_pipeline.audio_clean import clean_audio
+    from base_pipeline.denoise import BackendId, EnhancementConfig
+    from base_pipeline.stt_extract import run_stt_extract
 
     method = str(spec["method"])
     variant_id = str(spec["variant_id"])
