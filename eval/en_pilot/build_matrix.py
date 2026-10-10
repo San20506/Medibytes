@@ -3,7 +3,7 @@
 `evidence/matrix-v2/build_noise_matrix.py` is the shape this follows, with three
 deliberate departures: it imports the frozen corpus primitives from this
 repository instead of a hardcoded sibling worktree (that file `SystemExit`s when
-`/home/sandy/Projects/Medibytes-worktrees/eval-compare` is absent), it namespaces
+the worktree is absent), it namespaces
 its seeds away from `matrix-v2` so the two studies never share a mixture, and it
 verifies every noise recording against `evidence/noise-bank/demand-bank-manifest.jsonl`
 before use instead of recording the digest it happened to read.

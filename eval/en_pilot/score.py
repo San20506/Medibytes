@@ -352,11 +352,8 @@ def _write_csv(path: Path, columns: Sequence[str], rows: Sequence[dict[str, Any]
 def _code_state() -> dict[str, str]:
     """Bind the numbers to the exact normalisation and adapter code that ran.
 
-    The candidate adapters do not live in this repository — `demo/denoise_backends/`
-    here holds only `none.py` and `noisereduce.py`, and each backend was executed
-    from its own worktree under its own venv. Hashing this repository's copies
-    would attribute the results to code that never ran, so each backend's
-    adapter and dispatcher are hashed where they were actually imported from.
+    Every adapter lives in `base_pipeline/denoise_backends/`, so each backend's adapter,
+    the dispatcher and its frozen method config are hashed from this checkout.
     """
 
     state: dict[str, str] = {}
@@ -371,18 +368,15 @@ def _code_state() -> dict[str, str]:
         if value:
             state[relative] = value
     for backend in config.BACKENDS:
-        repo = Path(config.repo_for_backend(backend))
         module = backend.replace("-", "_")
         for relative in (
-            "demo/denoise.py",
-            f"demo/denoise_backends/{module}.py",
+            "base_pipeline/denoise.py",
+            f"base_pipeline/denoise_backends/{module}.py",
             f"eval/config/methods/{backend}.json",
         ):
-            path = repo / relative
-            if path.is_file():
-                state[f"{backend}:{repo.name}/{relative}"] = hashlib.sha256(
-                    path.read_bytes()
-                ).hexdigest()
+            value = digest(relative)
+            if value:
+                state[f"{backend}:{relative}"] = value
     return state
 
 

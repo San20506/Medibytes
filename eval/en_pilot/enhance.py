@@ -1,17 +1,9 @@
 """Enhance every matrix condition with exactly one backend, in its own process.
 
-`evidence/matrix-v2/matrix_eval.py:80-87` inserted a different worktree into
-`sys.path` from inside a `ThreadPoolExecutor` worker while its own comment says
-"One repo per PROCESS, never per thread" — `sys.modules` caches the first `base_pipeline`
-package, so after the first backend every later one would silently run the wrong
-adapter. Its `enhance-all.csv` had no `actual_backend` column, so a mis-dispatch
-would have been invisible in the shipped results.
-
-This module therefore runs one backend per invocation, prepends exactly one
-repository root to `sys.path` before any `base_pipeline` import, and records
-`actual_backend`/`variant_id` read off the returned `EnhancementOutput` for every
-row so a mis-dispatch is visible in the artefact rather than inferable only from
-a comment.
+One backend per invocation, so a run never mixes adapters. The earlier matrix evaluator
+(`evidence/matrix-v2/matrix_eval.py`) had no `actual_backend` column, so a mis-dispatch would
+have been invisible in its results; this module records `actual_backend`/`variant_id`, read off
+the returned `EnhancementOutput`, for every row so one is visible in the artefact.
 """
 
 from __future__ import annotations
@@ -21,7 +13,6 @@ import csv
 import json
 import os
 import struct
-import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -129,34 +120,12 @@ def load_method_spec(backend: str, data_root: Path) -> MethodSpec:
     )
 
 
-def check_backend(backend: str, repo_override: str | None) -> str:
-    """Fail closed before any work: unknown id, or a missing repository/venv."""
+def check_backend(backend: str) -> None:
+    """Fail closed before any work on an id the study does not run."""
 
     if backend not in config.BACKENDS:
         raise EnhanceError(
             f"unknown backend {backend!r}; the study runs exactly {list(config.BACKENDS)}"
-        )
-    repo_root = repo_override or config.repo_for_backend(backend)
-    if repo_override is None and not Path(repo_root).is_dir():
-        raise EnhanceError(f"backend repository is absent: {repo_root}")
-    venv_python = Path(repo_root) / ".venv" / "bin" / "python"
-    if not venv_python.is_file():
-        raise EnhanceError(
-            f"backend venv interpreter is absent: {venv_python}. Run this module "
-            f"with that venv's python, not the driver venv."
-        )
-    return repo_root
-
-
-def activate_repo(repo_root: str) -> None:
-    """Put exactly one repository on the path, before `base_pipeline` is ever imported."""
-
-    if repo_root in sys.path:
-        sys.path.remove(repo_root)
-    sys.path.insert(0, repo_root)
-    if "base_pipeline" in sys.modules:
-        raise EnhanceError(
-            "a `base_pipeline` package is already imported; refusing to mix repositories"
         )
 
 
@@ -232,11 +201,8 @@ def load_conditions(data_root: Path) -> list[dict[str, Any]]:
     return rows
 
 
-def run(
-    data_root: Path, backend: str, *, workers: int, repo_override: str | None
-) -> dict[str, Any]:
-    repo_root = check_backend(backend, repo_override)
-    activate_repo(repo_root)
+def run(data_root: Path, backend: str, *, workers: int) -> dict[str, Any]:
+    check_backend(backend)
     from base_pipeline import denoise
 
     spec = load_method_spec(backend, data_root)
@@ -271,7 +237,6 @@ def run(
     ]
     return {
         "backend": backend,
-        "repo_root": repo_root,
         "variant_id": spec.variant_id,
         "conditions": len(rows),
         "failed": len(failed),
@@ -295,19 +260,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         default=os.environ.get(config.ENVIRONMENT_NAME, config.DATA_ROOT_DEFAULT),
     )
     parser.add_argument("--workers", type=int, default=4)
-    parser.add_argument(
-        "--backend-repo-root",
-        default=None,
-        help="override a relocated backend worktree; never edits the pinned constant",
-    )
     arguments = parser.parse_args(argv)
     data_root = resolve_data_root(arguments.data_root)
-    summary = run(
-        data_root,
-        arguments.backend,
-        workers=arguments.workers,
-        repo_override=arguments.backend_repo_root,
-    )
+    summary = run(data_root, arguments.backend, workers=arguments.workers)
     print(json.dumps(summary, sort_keys=True))
     return 1 if summary["failed"] or summary["actual_backend_mismatches"] else 0
 
