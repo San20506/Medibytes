@@ -1,0 +1,31 @@
+{
+  "source": "https://github.com/haoheliu/voicefixer",
+  "source_revision": "zenodo-5600188",
+  "package": "voicefixer==0.1.3",
+  "package_license": "MIT",
+  "checkpoints": {
+    "vf.ckpt": {
+      "url": "https://zenodo.org/records/5600188/files/vf.ckpt?download=1",
+      "bytes": 489307071,
+      "md5": "1f479dabb9fa5724de5e20f2164cbc7a",
+      "sha256": "748411b70089cadf34a6c11054f95f3a454e614af562c23b13a82f6cb413109f"
+    },
+    "model.ckpt-1490000_trimed.pt": {
+      "url": "sherpa-onnx TFGAN vocoder asset downloaded by voicefixer 0.1.3",
+      "bytes": 135613039,
+      "md5": "ac6de16561dd6042daf8bb3a806dc818",
+      "sha256": "9410d0b528c10a251ae947bd299d1939b0b3247df680c81c4164e94f5d87dc45"
+    }
+  },
+  "artifact_hazard_found": {
+    "what": "The voicefixer 0.1.3 import-time downloader left a 55,205,888-byte file at ~/.cache/voicefixer/analysis_module/checkpoints/vf.ckpt with MD5 8d6f2d80c3424e0f76c6004786f6d62e, which does not match the pinned 1f479dabb9fa5724de5e20f2164cbc7a.",
+    "why_it_matters": "VoiceFixer loads the analysis module with load_state_dict(..., strict=False), so a short or wrong file can load without raising. An unchecked run would have produced numbers from a silently wrong checkpoint.",
+    "mitigation": "Both files are pinned by size, MD5 and SHA-256, verified at the staged data-root path, and re-verified at the exact ~/.cache paths VoiceFixer reads before any model is constructed. Mismatch is a hard BACKEND_UNAVAILABLE."
+  },
+  "license_note": "The catalog records MIT for this row. That covers the voicefixer package source. The Zenodo checkpoint assets are separately licensed publication artifacts and are not covered by the package's MIT grant; recorded here so the row is not read as a blanket MIT grant over the weights.",
+  "interface": "voicefixer.VoiceFixer().restore_inmem(wav_44k1, cuda=False, mode=0)",
+  "geometry": "16 kHz mono in, resampled to 44.1 kHz; upstream segments at 30 s and center-trims each segment to its own input length; output returned at 44.1 kHz with the same sample count, delay_samples 0; the shared cleaner resamples back to 16 kHz",
+  "execution": "CPU only, mode 0 (original model, eval mode), cuda=False, one VoiceFixer instance per sample, no fallback and no second model",
+  "measurement_caveat": "This is generative restoration, not noise suppression. Waveform, speaker and term preservation must be read separately; the corpus run reports audio metrics and WER only.",
+  "runtime": "Python 3.12.14, voicefixer 0.1.3, device cpu, network disabled during evaluation"
+}

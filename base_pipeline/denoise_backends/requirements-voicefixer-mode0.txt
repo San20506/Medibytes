@@ -1,0 +1,4 @@
+# Python 3.12. Install after base_pipeline/requirements.txt, in a venv dedicated to this arm.
+# The 0.1.3 wheel declares Python >=3.7; 3.12 compatibility is verified by this
+# arm's own run, not by the package metadata.
+voicefixer==0.1.3
