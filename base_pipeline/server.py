@@ -33,8 +33,8 @@ MAX_UPLOAD_BYTES = int(os.environ.get("MEDIBYTES_MAX_UPLOAD_BYTES", 64 * 1024 * 
 ALLOWED_SUFFIXES = {".wav", ".mp3", ".m4a", ".flac", ".ogg", ".webm"}
 
 # One inference worker: the STT and denoiser models are heavy and are not
-# known to be thread-safe.  Anything else that loads models (clinical_eval's
-# server) submits to this same executor.
+# known to be thread-safe.  Anything else that loads models in this process
+# must submit to this same executor.
 executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="medibytes-worker")
 _jobs: dict[str, dict[str, Any]] = {}
 _lock = threading.Lock()
