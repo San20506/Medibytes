@@ -1,0 +1,12 @@
+{
+  "backend": "speechbrain-metricgan-plus",
+  "variant_id": "metricgan-plus-voicebank-1.1.1",
+  "model_path": "models/speechbrain/metricgan-plus-voicebank/enhance_model.ckpt",
+  "model_sha256": null,
+  "parameters": {
+    "sample_rate": 16000,
+    "device": "cpu",
+    "model": "speechbrain/metricgan-plus-voicebank"
+  },
+  "timeout_s": 900.0
+}

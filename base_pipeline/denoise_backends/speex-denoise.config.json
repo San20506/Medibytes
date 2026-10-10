@@ -1,0 +1,15 @@
+{
+  "backend": "speex-denoise",
+  "variant_id": "1.2.1-denoise-only",
+  "model_sha256": null,
+  "parameters": {
+    "frame_size": 160,
+    "sample_rate": 16000,
+    "denoise": true,
+    "agc": false,
+    "vad": false,
+    "dereverb": false,
+    "residual_echo_suppression": false
+  },
+  "timeout_s": 300.0
+}

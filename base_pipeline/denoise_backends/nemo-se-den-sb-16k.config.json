@@ -1,0 +1,13 @@
+{
+  "backend": "nemo-se-den-sb-16k",
+  "variant_id": "se-den-sb-16k-small-2.7.3",
+  "model_path": "models/nemo/se_den_sb_16k_small.nemo",
+  "model_sha256": "9de7f36d08df4109402e68e41d78e781c8da6a3d7691a674c5231b840151ff09",
+  "parameters": {
+    "sample_rate": 16000,
+    "seed": 1729,
+    "num_steps": 10,
+    "state_per_sample": true
+  },
+  "timeout_s": 1800.0
+}

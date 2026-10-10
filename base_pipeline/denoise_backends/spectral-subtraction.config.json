@@ -1,0 +1,14 @@
+{
+  "backend": "spectral-subtraction",
+  "variant_id": "pyroomacoustics-0.10.1-ss",
+  "model_sha256": null,
+  "parameters": {
+    "nfft": 512,
+    "db_reduc": 10,
+    "lookback": 12,
+    "beta": 3,
+    "alpha": 1.2,
+    "sample_rate": 16000
+  },
+  "timeout_s": 300.0
+}

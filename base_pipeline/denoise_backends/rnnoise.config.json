@@ -1,0 +1,11 @@
+{
+  "backend": "rnnoise",
+  "variant_id": "v0.2-0b50c45",
+  "model_path": "models/rnnoise/v0.2-0b50c45/rnnoise_data-0b50c45.tar.gz",
+  "model_sha256": null,
+  "parameters": {
+    "native_sample_rate": 48000,
+    "state_per_sample": true
+  },
+  "timeout_s": 300.0
+}
