@@ -13,6 +13,7 @@ _ROOT = Path(__file__).resolve().parents[2]
 
 from base_pipeline.audio_clean import clean_audio
 from base_pipeline.denoise import BackendId, EnhancementConfig, run_backend
+pytest.importorskip("scipy", reason="the rnnoise adapter resamples with scipy (see README, Denoiser arms)")
 from base_pipeline.denoise_backends import rnnoise as adapter
 from base_pipeline.paths import data_root
 from arm_support import require_arm

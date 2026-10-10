@@ -19,6 +19,7 @@ from base_pipeline.denoise import (
     EnhancementConfig,
     run_backend,
 )
+pytest.importorskip("scipy", reason="the deepfilternet3 adapter resamples with scipy (see README, Denoiser arms)")
 from base_pipeline.denoise_backends import deepfilternet3 as adapter
 from base_pipeline.paths import data_root
 from arm_support import require_arm
