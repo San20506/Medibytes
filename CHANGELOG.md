@@ -33,6 +33,10 @@ commit that touches behaviour, ignoring only timing fields.
   library is kept as `librnnoise_medibytes.so.native-e066ae51`. Frozen method configs keep
   `model_sha256: null` on purpose (tests assert it); the adapters pin the digest and record it per sample.
 - **`en_pilot/` moved to `eval/en_pilot/`** and runs against the in-tree adapters, not per-arm worktrees.
+- **Old evidence does not verify from here, and did not before.** `python -m eval.harness verify-run` on the
+  `runs/b1-*` roots fails with "downstream source hash changed after this run" both at this branch and at the
+  previous HEAD (`1f8d998`): their recorded hash predates later `stt_extract.py` changes. Verify a historical run
+  from the commit it was made on (the `archive/eval/*` tags). The frozen harness is otherwise unchanged.
 - **Shareable:** the machine-local data root comes from `base_pipeline.paths.data_root()`
   (`$MEDIBYTES_EVAL_DATA_ROOT`); no code or config names a home directory. `eval/corpus/selection.json`
   still does, in an unread field, because it is the frozen corpus policy whose digest every corpus
