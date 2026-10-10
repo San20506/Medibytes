@@ -25,17 +25,17 @@ writing this design, not assumed:
   `condition_id,backend,samples,enhance_s,enhanced_path,peak`. There is no
   `actual_backend` column, so the study's dispatch is not auditable from its own
   artefact.
-- `/home/sandy/.local/share/medibytes-eval/sources/fleurs/en_us/validation/0000.parquet`
+- `<data-root>/sources/fleurs/en_us/validation/0000.parquet`
   — 394 rows, columns `id, num_samples, path, audio, transcription,
   raw_transcription, gender, lang_id, language, lang_group_id`; sha256
   `7c3eeb11a9597bd52cdc1b0d637e85389fe094cfd8763913e7bf4fdf7a853959`, the same
   digest `eval/corpus/manifest.jsonl` records for the frozen corpus.
   `eval/corpus/sources.py:20-22` pins `google/fleurs` at revision
   `168de341b3db6859a9bac1c50a2ef5e3b47647e0`, CC-BY-4.0.
-- `/home/sandy/.local/share/medibytes-eval/noise-bank/demand-16k/` — 18 DEMAND
+- `<data-root>/noise-bank/demand-16k/` — 18 DEMAND
   recordings, each with a sha256, DOI, licence and category in
   `evidence/noise-bank/demand-bank-manifest.jsonl` (18 lines).
-- `/home/sandy/.local/share/medibytes-eval/models/dpdfnet/dpdf8c40d95cd/dpPDFNet/dpdfnet2.onnx`
+- `<data-root>/models/dpdfnet/dpdf8c40d95cd/dpPDFNet/dpdfnet2.onnx`
   and `.../models/sherpa-onnx/gtcrn_simple.onnx` are present; the per-backend
   venvs exist at `Medibytes-worktrees/eval-{dpdfnet,sherpa-onnx,compare}/.venv/bin/python`.
 - `ctranslate2.get_cuda_device_count()` returns 1 on this workstation.
@@ -90,7 +90,7 @@ and `row_index`, making every admitted base traceable to one exact parquet cell.
 `evidence/matrix-v2/build_noise_matrix.py` with three departures: it imports the
 frozen audio primitives from this repository instead of a hardcoded sibling
 worktree (that file `SystemExit`s at `:46-50` when
-`/home/sandy/Projects/Medibytes-worktrees/eval-compare` is absent), it
+`<worktrees>/eval-compare` is absent), it
 namespaces its seeds under `medibytes-en-pilot-v1` so no mixture is ever shared
 with `matrix-v2`, and it verifies each noise recording against
 `evidence/noise-bank/demand-bank-manifest.jsonl` before use rather than

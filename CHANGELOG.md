@@ -729,7 +729,7 @@ unmeasured.
 
 ### Product repo: audio-diagnostic-routing plan, all 7 tasks (2026-09-29)
 
-Built in a separate repo, `/home/sandy/Projects/Product`, branch
+Built in a separate repo, `<product-clone>`, branch
 `feature/audio-diagnostic-pipeline-task1` (commits `52cc141`..`8fc346f`,
 pushed). Not this repo's concern operationally, but recorded here since it
 was worked in the same session and the user asked to keep changelogs
@@ -777,7 +777,7 @@ the plan's own "keep it disabled until reference parity passes" guidance.
   `github.com/medibytesinternational-netizen/Product/pull/new/feature/denoise-stt-evidence-integration`)
   — the block appears to have been specific to that first invocation, not a
   standing policy; no permission change was made in between.
-- Separately, cloned `Product` fresh into `/home/sandy/Projects/Product`
+- Separately, cloned `Product` fresh into `<product-clone>`
   (sibling to this repo) to build the audio-diagnostic-routing plan's Task 1
   there — see that repo's own `feature/audio-diagnostic-pipeline-task1`
   branch (commit `52cc141`, pushed successfully — same-repo push, no

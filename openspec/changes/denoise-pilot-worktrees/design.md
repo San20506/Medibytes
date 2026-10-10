@@ -28,7 +28,7 @@ A method worktree may add only `demo/denoise_backends/<id>.py`, a co-located met
 
 ### Common format and data boundary
 
-- The evaluator data root is the absolute, nonempty environment value `MEDIBYTES_EVAL_DATA_ROOT=/home/sandy/.local/share/medibytes-eval`. Corpus, downloaded archives, model weights, and run outputs live under that root; repository files contain only policy, manifests, hashes, notices, configs, code, and reports.
+- The evaluator data root is the absolute, nonempty environment value `MEDIBYTES_EVAL_DATA_ROOT=<data-root>`. Corpus, downloaded archives, model weights, and run outputs live under that root; repository files contain only policy, manifests, hashes, notices, configs, code, and reports.
 - Corpus and evaluator audio is 16 kHz mono signed PCM16 WAV. A canonical RIFF header is exactly 44 bytes. Source metadata is not propagated.
 - `clean_audio` accepts source input at any decodable rate/channel layout, decodes it, and resamples to 16 kHz mono before the common RMS target `0.1`, peak ceiling `0.98`, and diagnostic RMS VAD with trimming disabled.
 - Enhancement output is delay-compensated, finite, nonempty, mono, and exactly the common input sample count before save. The saved output is 16 kHz PCM16.

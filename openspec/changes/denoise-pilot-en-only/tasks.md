@@ -20,15 +20,15 @@
 
 ```bash
 .venv/bin/python -m en_pilot.build_corpus
-.venv/bin/python -c "import json,pathlib;rows=[json.loads(l) for l in pathlib.Path('/home/sandy/.local/share/medibytes-eval/corpus/en-40-v1/manifest.jsonl').read_text().splitlines()];print(len(rows),[r['sample_id'] for r in rows[:4]],rows[0]['bucket'],rows[0]['language_profile'])"
+.venv/bin/python -c "import json,pathlib;rows=[json.loads(l) for l in pathlib.Path('<data-root>/corpus/en-40-v1/manifest.jsonl').read_text().splitlines()];print(len(rows),[r['sample_id'] for r in rows[:4]],rows[0]['bucket'],rows[0]['language_profile'])"
 # expected: 40 ['sample-001', 'sample-002', 'sample-003', 'sample-004'] en-US-proxy en-US-proxy
 ```
 
 - [ ] 3.5 Assert the superset claim by digest before anything downstream runs: if `sample-001` differs from the frozen corpus, stop — the canonicalisation path has drifted and the study is not comparable to `matrix-v2`.
 
 ```bash
-sha256sum /home/sandy/.local/share/medibytes-eval/corpus/en-40-v1/clean/sample-001.wav \
-          /home/sandy/.local/share/medibytes-eval/corpus/pilot-15-v1/clean/sample-001.wav
+sha256sum <data-root>/corpus/en-40-v1/clean/sample-001.wav \
+          <data-root>/corpus/pilot-15-v1/clean/sample-001.wav
 # expected: two identical digests
 ```
 
@@ -56,7 +56,7 @@ sha256sum /home/sandy/.local/share/medibytes-eval/corpus/en-40-v1/clean/sample-0
 - [ ] 5.6 Drop `matrix-v2`'s dead `--batch-size` argument.
 
 ```bash
-PYTHONPATH="$PWD" /home/sandy/Projects/Medibytes-worktrees/eval-dpdfnet/.venv/bin/python \
+PYTHONPATH="$PWD" <worktrees>/eval-dpdfnet/.venv/bin/python \
   -m en_pilot.enhance --backend dpdfnet2-onnx --data-root "$MEDIBYTES_EVAL_DATA_ROOT" --workers 4
 # every row of enhance-dpdfnet2-onnx.csv must read actual_backend=dpdfnet2-onnx, variant_id=v0.6.0
 ```

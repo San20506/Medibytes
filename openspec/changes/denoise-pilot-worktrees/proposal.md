@@ -52,7 +52,7 @@ The corpus is intentionally non-clinical: it can screen paired audio quality, re
 
 - This phase does not implement cascades, fallback routing, sequential/layered processing, production selection, or claims beyond the smoke pilot.
 - The shared baseline and evaluator finish before any method worktree exists. Method branches are not merged during this phase.
-- Audio, downloaded archives, and model weights remain under `/home/sandy/.local/share/medibytes-eval`; only policy, manifests, checksums, notices, configs, code, and reports are versioned.
+- Audio, downloaded archives, and model weights remain under `<data-root>`; only policy, manifests, checksums, notices, configs, code, and reports are versioned.
 
 ## Rollback
 

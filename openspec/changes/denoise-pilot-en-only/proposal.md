@@ -118,4 +118,4 @@ Delete `en_pilot/`, `openspec/changes/denoise-pilot-en-only/`, and
 `evidence/en-pilot/`. Nothing else in the repository is modified: `eval/`,
 `demo/` and `evidence/matrix-v2/` are untouched by this change, and every large
 artefact lands under the gitignored data root
-(`/home/sandy/.local/share/medibytes-eval/`), which can be deleted independently.
+(`<data-root>/`), which can be deleted independently.

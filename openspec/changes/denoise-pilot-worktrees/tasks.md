@@ -8,7 +8,7 @@
 ## 2. Reproducible 15-Base Corpus
 
 - [ ] 2.1 Add `eval/corpus/selection.json` with the immutable policy: FLEURS revision `168de341b3db6859a9bac1c50a2ef5e3b47647e0`; four eligible validation rows each for `en_us`, `hi_in`, and `ta_in`; three distinct-recording MUCS segments; English label `en-US-proxy`; common 3–12 second, mono, transcript, and privacy filters.
-- [ ] 2.2 Add the absolute/empty-root guard and default workstation export `MEDIBYTES_EVAL_DATA_ROOT=/home/sandy/.local/share/medibytes-eval`; add `eval/.cache/` to `.gitignore` while keeping canonical audio/models outside git.
+- [ ] 2.2 Add the absolute/empty-root guard and default workstation export `MEDIBYTES_EVAL_DATA_ROOT=<data-root>`; add `eval/.cache/` to `.gitignore` while keeping canonical audio/models outside git.
 - [ ] 2.3 Implement `python -m eval.corpus.build_corpus download` with the exact FLEURS `hf_hub_download` call/revision and `curl --fail --location --retry 3` for the size-`443929204` MUCS archive; compute/persist parquet and archive SHA-256 values and fail on a changed digest.
 - [ ] 2.4 Implement deterministic selection in numeric-FLEURS-ID and MUCS recording/start-sample order, retaining the exact privacy decisions and the first four/first three distinct eligible records.
 - [ ] 2.5 Implement 16 kHz mono PCM16 canonicalization with a 44-byte RIFF header, pinned `imageio-ffmpeg==0.6.0` or hash-recorded system FFmpeg, metadata removal, validation, and clean peak `-3.00 ± 0.01 dBFS`.
@@ -19,7 +19,7 @@
 - [ ] 2.10 Run and retain evidence for:
 
 ```bash
-export MEDIBYTES_EVAL_DATA_ROOT=/home/sandy/.local/share/medibytes-eval
+export MEDIBYTES_EVAL_DATA_ROOT=<data-root>
 uv run --python 3.12 python -m eval.corpus.build_corpus download
 uv run --python 3.12 python -m eval.corpus.build_corpus build --spec eval/corpus/selection.json --out "$MEDIBYTES_EVAL_DATA_ROOT/corpus/pilot-15-v1"
 uv run --python 3.12 python -m eval.corpus.build_corpus verify --manifest eval/corpus/manifest.jsonl --data-root "$MEDIBYTES_EVAL_DATA_ROOT"
