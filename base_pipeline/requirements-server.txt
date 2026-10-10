@@ -1,0 +1,6 @@
+# HTTP backend over base_pipeline (base_pipeline/server.py).
+# Install on top of requirements.txt.
+fastapi>=0.142
+uvicorn>=0.54
+python-multipart>=0.0.32   # required for UploadFile; without it POST /jobs fails at request time
+httpx>=0.28                # fastapi.testclient, used by base_pipeline/tests/test_server.py

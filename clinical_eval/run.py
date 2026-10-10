@@ -28,7 +28,7 @@ from typing import Any, Sequence
 from clinical_eval.prepare import DATA_ROOT_DEFAULT, corpus_root, load_manifest
 
 DENOISERS = ("none", "sherpa-gtcrn-simple")
-# The default sweep. `demo/server.py` falls back to this for `/api/eval/run`,
+# The default sweep. `clinical_eval/server.py` falls back to this for `/api/eval/run`,
 # so anything added here is paid for by every future full run.
 DECODERS = ("small-int8", "base-int8", "medasr")
 # Accepted but opt-in: `medasr-lm` pulls a 704 MB kenlm language model on top

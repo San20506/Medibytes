@@ -1,25 +1,19 @@
-"""The HTTP backend must serve the same chain `pipeline.py` runs."""
+"""The HTTP backend must serve the same chain `base_pipeline.run` runs."""
 import json
 import os
-import sys
 import time
 
 import pytest
 
-_DEMO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if _DEMO not in sys.path:
-    sys.path.insert(0, _DEMO)
-
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 fastapi_testclient = pytest.importorskip("fastapi.testclient")
-SAMPLE = os.path.join(_DEMO, "audio_in", "sample1_hinglish_fever.wav")
+SAMPLE = os.path.join(REPO, "fixtures", "audio", "sample1_hinglish_fever.wav")
 
 
 @pytest.fixture()
 def client(tmp_path, monkeypatch):
     monkeypatch.setenv("MEDIBYTES_JOB_ROOT", str(tmp_path))
-    for name in ("server",):
-        sys.modules.pop(name, None)
-    import server
+    from base_pipeline import server
 
     server.JOB_ROOT = tmp_path
     server.UPLOAD_ROOT = tmp_path / "uploads"
@@ -32,8 +26,7 @@ def _submit(client, **form):
         return client.post(
             "/api/audio/jobs",
             files={"file": ("sample1.wav", handle, "audio/wav")},
-            data={"model": "mock", "denoiser": "none", "template": "none",
-                  "use_llm": "false", **form},
+            data={"model": "mock", "denoiser": "none", "use_llm": "false", **form},
         )
 
 
@@ -101,12 +94,12 @@ def test_api_result_matches_the_cli_for_the_same_clip_and_config(client, tmp_pat
     body = _await(c, _submit(c).json()["job_id"])
     assert body["status"] == "succeeded", body.get("error")
 
-    import pipeline
+    from pathlib import Path
 
-    direct = pipeline.run_pipeline(
-        SAMPLE, key="cli-parity", use_llm=False, model="mock", template="none",
-        denoiser="none", root=str(tmp_path / "cli"), log=lambda *a: None,
-    )
+    from base_pipeline.run import run_clip
+
+    direct = run_clip(Path(SAMPLE), tmp_path / "cli", "none", model="mock", use_llm=False,
+                      validate_terms="auto", second_pass="auto", llm_model=None)
     def _comparable(entities):
         # job_id differs by construction; every extracted field must not.
         return json.dumps({k: v for k, v in entities.items() if k != "job_id"},
