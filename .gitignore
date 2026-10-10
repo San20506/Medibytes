@@ -25,21 +25,12 @@ Thumbs.db
 # Evaluation corpus temporary build files
 eval/.cache/
 
-# Local temp uploads (persisted live runs are demo data, keep them by default)
-# Uncomment to exclude regenerated pipeline outputs:
-# demo/cleaned/
-# demo/transcripts/
-# demo/entities/
-# demo/exports/
 /.hypothesis/
 
 # Evaluation evidence: reports, manifests and workbooks only.
 # Audio, models and run artefacts stay in the data root and are gitignored
 # upstream; manifests reference them by absolute path and SHA-256.
 /evidence/
-
-# HTTP backend job tree (uploads + per-job pipeline outputs)
-demo/_server_jobs/
 
 # scratch experiments
 asr-import.py
