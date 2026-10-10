@@ -13,7 +13,7 @@ import pytest
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
-from base_pipeline import stt_extract
+from base_pipeline import asr
 
 
 def _broken_medasr_lm(monkeypatch, error=RuntimeError("forced no weights")):
@@ -98,9 +98,9 @@ def test_labels_are_cached_per_tokenizer():
 def test_non_strict_medasr_lm_failure_is_an_explicit_labelled_mock(monkeypatch):
     _broken_medasr_lm(monkeypatch)
 
-    result = stt_extract.transcribe("input.wav", model="medasr-lm", strict=False)
+    result = asr.transcribe("input.wav", model="medasr-lm", strict=False)
 
-    assert result["text"] in stt_extract.MOCK_TEXTS.values()
+    assert result["text"] in asr.MOCK_TEXTS.values()
     assert result["engine"] == "mock (no medasr-lm: RuntimeError)"
     assert result["stt_provenance"]["is_mock"] is True
     assert result["stt_provenance"]["requested_model"] == "medasr-lm"
@@ -111,7 +111,7 @@ def test_missing_module_also_degrades_rather_than_crashing(monkeypatch):
     """The real failure mode on a box without the weights or pyctcdecode."""
     monkeypatch.setitem(sys.modules, "base_pipeline.medasr_lm", None)  # forces ImportError
 
-    result = stt_extract.transcribe("input.wav", model="medasr-lm", strict=False)
+    result = asr.transcribe("input.wav", model="medasr-lm", strict=False)
 
     assert result["engine"].startswith("mock (no medasr-lm:")
     assert result["stt_provenance"]["is_mock"] is True
@@ -121,18 +121,18 @@ def test_strict_medasr_lm_failure_propagates_without_mock_leakage(monkeypatch):
     _broken_medasr_lm(monkeypatch)
 
     with pytest.raises(RuntimeError, match="forced no weights"):
-        stt_extract.transcribe("input.wav", model="medasr-lm", strict=True)
+        asr.transcribe("input.wav", model="medasr-lm", strict=True)
 
 
 def test_fallback_matches_the_medasr_path_it_is_modelled_on(monkeypatch):
     """Same shape as `medasr`, so the scorer cannot tell them apart by schema."""
     _broken_medasr_lm(monkeypatch)
     monkeypatch.setattr(
-        stt_extract, "transcribe_medasr",
+        asr, "transcribe_medasr",
         lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("forced no weights")))
 
-    lm = stt_extract.transcribe("input.wav", model="medasr-lm", strict=False)
-    plain = stt_extract.transcribe("input.wav", model="medasr", strict=False)
+    lm = asr.transcribe("input.wav", model="medasr-lm", strict=False)
+    plain = asr.transcribe("input.wav", model="medasr", strict=False)
 
     assert lm.keys() == plain.keys()
     assert lm["stt_provenance"].keys() == plain["stt_provenance"].keys()

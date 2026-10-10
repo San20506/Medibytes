@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__)))))
 
 from base_pipeline import verify as V
-from base_pipeline.stt_extract import extract_entities, normalize_text
+from base_pipeline.extract import extract_entities, normalize_text
 
 
 def _t(text):

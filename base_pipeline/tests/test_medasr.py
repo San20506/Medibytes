@@ -11,11 +11,11 @@ import sys
 import pytest
 
 
-from base_pipeline import stt_extract
+from base_pipeline import asr
 
 
 def test_spoken_punctuation_becomes_real_punctuation():
-    text = stt_extract.medasr_detokenize(
+    text = asr.medasr_detokenize(
         "No saddle embolus {comma} lungs clear {period}"
     )
 
@@ -23,7 +23,7 @@ def test_spoken_punctuation_becomes_real_punctuation():
 
 
 def test_section_headers_and_end_token_are_removed():
-    text = stt_extract.medasr_detokenize(
+    text = asr.medasr_detokenize(
         "[EXAM TYPE] CT chest {period} [IMPRESSION] {colon} Acute PE {period}</s>"
     )
 
@@ -32,29 +32,29 @@ def test_section_headers_and_end_token_are_removed():
 
 
 def test_unknown_directive_is_dropped_not_spelled_out():
-    text = stt_extract.medasr_detokenize("the patient {bold} denies pain {period}")
+    text = asr.medasr_detokenize("the patient {bold} denies pain {period}")
 
     assert text == "the patient denies pain."
 
 
 def test_paragraph_directive_keeps_a_break():
-    assert stt_extract.medasr_detokenize("one {new paragraph} two") == "one \n\n two"
+    assert asr.medasr_detokenize("one {new paragraph} two") == "one \n\n two"
 
 
 def test_stray_bracket_from_a_truncated_directive_does_not_survive():
-    assert stt_extract.medasr_detokenize("] the UN also hopes") == "the UN also hopes"
+    assert asr.medasr_detokenize("] the UN also hopes") == "the UN also hopes"
 
 
 @pytest.mark.parametrize("text", ["", "   ", "</s>"])
 def test_empty_and_token_only_output_detokenises_to_nothing(text):
-    assert stt_extract.medasr_detokenize(text) == ""
+    assert asr.medasr_detokenize(text) == ""
 
 
 def test_detokenised_markup_leaves_no_spurious_evaluation_tokens():
     import re
 
     raw = "[FINDINGS] {colon} Lungs clear {period} No effusion {period}</s>"
-    tokens = re.findall(r"[a-z0-9]+", stt_extract.medasr_detokenize(raw).lower())
+    tokens = re.findall(r"[a-z0-9]+", asr.medasr_detokenize(raw).lower())
 
     assert tokens == [
         "lungs", "clear", "no", "effusion",

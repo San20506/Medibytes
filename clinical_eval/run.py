@@ -5,9 +5,9 @@ Each component is exercised on the input it would get in production, and also on
 stage that caused it rather than to the cascade:
 
   C1 ingest/clean   `base_pipeline.audio_clean.clean_audio`, per denoiser arm
-  C2 STT            `base_pipeline.stt_extract.transcribe`, per decoder, on C1's output
-  C3 normalize      `base_pipeline.stt_extract.normalize_text` on the REFERENCE text
-  C4 extract        `base_pipeline.stt_extract.extract_entities` on the REFERENCE text
+  C2 STT            `base_pipeline.asr.transcribe`, per decoder, on C1's output
+  C3 normalize      `base_pipeline.extract.normalize_text` on the REFERENCE text
+  C4 extract        `base_pipeline.extract.extract_entities` on the REFERENCE text
                     (the extractor's ceiling: perfect transcript in)
   C5 end to end     the real cascade, audio -> clean -> STT -> normalize -> extract
 
@@ -71,7 +71,7 @@ def _clean(source: Path, destination: Path, denoiser: str) -> dict[str, Any]:
 
 
 def _transcribe(wav: Path, decoder: str, clip_id: str) -> dict[str, Any]:
-    from base_pipeline.stt_extract import transcribe
+    from base_pipeline.asr import transcribe
 
     started = time.perf_counter()
     try:
@@ -89,7 +89,7 @@ def _transcribe(wav: Path, decoder: str, clip_id: str) -> dict[str, Any]:
 
 
 def _extract(text: str) -> dict[str, Any]:
-    from base_pipeline.stt_extract import extract_entities, normalize_text
+    from base_pipeline.extract import extract_entities, normalize_text
 
     normalized = normalize_text(text)
     entities = extract_entities(text, normalized["normalized_en"], [])

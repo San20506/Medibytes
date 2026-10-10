@@ -40,7 +40,7 @@ def test_run_routes_the_medasr_lm_name_through_to_transcribe(tmp_path, monkeypat
         seen.append((model, strict))
         return {"text": "give 500 mg", "engine": "fake", "segments": []}
 
-    monkeypatch.setattr("base_pipeline.stt_extract.transcribe", fake_transcribe)
+    monkeypatch.setattr("base_pipeline.asr.transcribe", fake_transcribe)
 
     summary = eval_run.run(data_root, denoisers=("none",), decoders=("medasr-lm",),
                            channel="mix")

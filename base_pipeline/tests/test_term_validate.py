@@ -12,7 +12,7 @@ import sys
 
 import pytest
 
-from base_pipeline.stt_extract import extract_entities, normalize_text
+from base_pipeline.extract import extract_entities, normalize_text
 from base_pipeline.term_validate import (MIN_CONFIDENCE, apply_validation, build_request,
                            flagged_rows, judge)
 

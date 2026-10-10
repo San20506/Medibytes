@@ -9,11 +9,11 @@ audio (wav/mp3/m4a/mp4)
   | audio_clean.py   16 kHz mono, anti-aliased resample, RMS normalise, VAD ratio
   |   denoise.py + denoise_backends/   none (default) | dpdfnet2-onnx | sherpa-gtcrn-simple | noisereduce
   v
-  | stt_extract.py   transcribe(): medasr -> small-int8 -> mock (never straight to mock)
+  | asr.py           transcribe(): medasr -> small-int8 -> mock (never straight to mock)
   |   medasr_lm.py   opt-in kenlm beam search (measured worse; off by default)
   |   second decoder pass unions drug rows (and vitals, keyed on the reading) the primary missed
   v
-  | stt_extract.py   normalize_text(), extract_entities(): vitals, drugs, allergies, negation
+  | extract.py       normalize_text(), extract_entities(): vitals, drugs, allergies, negation
   |   drug_reference.py + assets/   2,542 substances / 71,872 brands (Common Drug Codes for India)
   |   fuzzy repair of misheard names, dose-aware, brands never create rows
   v

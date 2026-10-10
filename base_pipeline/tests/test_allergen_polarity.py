@@ -5,11 +5,11 @@ The defect was real: a clip that said "she was started on amoxicillin" and, late
 order to give AND as an allergy. Each case below is one way the two statements
 can meet, plus the controls that must NOT be blocked.
 """
-from base_pipeline import stt_extract as se
+from base_pipeline import extract as ex
 
 
 def _ents(text):
-    return se.extract_entities(text, se.normalize_text(text)["normalized_en"], [])
+    return ex.extract_entities(text, ex.normalize_text(text)["normalized_en"], [])
 
 
 def _drug(ents, name):
@@ -69,10 +69,10 @@ def test_the_pass_is_idempotent_and_catches_a_row_added_later():
     ents = _ents("She is allergic to amoxicillin.")
     ents["drugs"].append({"name": "amoxicillin", "dose": None, "negated": False,
                           "color": "YELLOW", "confidence": 0.9})
-    once = se._reconcile_allergens(ents)
+    once = ex._reconcile_allergens(ents)
     snapshot = [dict(d) for d in once["drugs"]]
     assert [d for d in once["drugs"] if d["name"] == "amoxicillin"][0]["negated"] is True
-    assert [dict(d) for d in se._reconcile_allergens(once)["drugs"]] == snapshot
+    assert [dict(d) for d in ex._reconcile_allergens(once)["drugs"]] == snapshot
 
 
 def test_a_dictation_with_no_allergy_is_untouched():

@@ -6,7 +6,7 @@ every 8 hours), misheard drug and allergy names, and which vitals box a span fil
 (`vitals_kind.vitals_box_kind`, the classifier the chart and the LLM gap-fill share).
 """
 from base_pipeline.llm_extract import merge_primary
-from base_pipeline.stt_extract import extract_entities, normalize_text
+from base_pipeline.extract import extract_entities, normalize_text
 from base_pipeline.vitals_kind import vitals_box_kind
 
 

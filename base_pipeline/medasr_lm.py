@@ -18,12 +18,7 @@ import wave
 
 import numpy as np
 
-from .stt_extract import (
-    MEDASR_MODEL_ID,
-    _medasr_segments,
-    _transformers_version,
-    medasr_detokenize,
-)
+from .asr import MEDASR_MODEL_ID, _medasr_segments, _transformers_version, medasr_detokenize
 
 MODEL_REVISION = "ae1e4845b4b07479735d93e1e591e566435b7104"
 CHUNK_S = 20.0
@@ -104,7 +99,7 @@ def transcribe_medasr_lm(clean_wav, job_id="demo-001", device=None,
 
     snap = _snapshot_dir()
     # Load the 402 MB acoustic model once per process, mirroring
-    # `stt_extract._medasr_pipeline`. Without this every call re-read it from
+    # `asr._medasr_pipeline`. Without this every call re-read it from
     # disk, which is tolerable for a one-off CLI run and not for the server,
     # where it would be paid on each request.
     if snap not in _CTC:

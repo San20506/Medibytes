@@ -19,8 +19,9 @@ from pathlib import Path
 import numpy as np
 
 from .audio_clean import BackendId, clean_audio
-from .stt_extract import (_annotate_entity_spans, _reconcile_allergens, detect_lang_tag,
-                          extract_entities, normalize_text, transcribe, transcribe_medasr)
+from .asr import transcribe, transcribe_medasr
+from .extract import (_annotate_entity_spans, _reconcile_allergens, detect_lang_tag,
+                      extract_entities, normalize_text)
 from .verify import verify
 
 VARIANT = "whisper-medasr"

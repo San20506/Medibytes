@@ -645,7 +645,7 @@ def validate_real_transcript(
     normalized_text = transcript.get("normalized_en")
     if not isinstance(text, str) or not isinstance(normalized_text, str):
         raise RunnerError("strict transcript text and normalized_en must be strings")
-    from base_pipeline.stt_extract import normalize_text
+    from base_pipeline.extract import normalize_text
 
     expected_normalization = normalize_text(text)
     if normalized_text != expected_normalization["normalized_en"]:

@@ -365,7 +365,8 @@ def _code_state() -> dict[str, str]:
         path = config.REPO_ROOT / relative
         return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
 
-    for relative in ("base_pipeline/stt_extract.py", "eval/metrics.py", "en_pilot/score.py", "en_pilot/stats.py"):
+    for relative in ("base_pipeline/asr.py", "base_pipeline/extract.py", "base_pipeline/stt_extract.py",
+                     "eval/metrics.py", "en_pilot/score.py", "en_pilot/stats.py"):
         value = digest(relative)
         if value:
             state[relative] = value

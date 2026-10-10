@@ -11,7 +11,7 @@ from jsonschema import Draft7Validator, ValidationError
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 
-from base_pipeline import stt_extract
+from base_pipeline import asr, extract, stt_extract
 
 
 def _fake_faster_whisper(monkeypatch, whisper_model, version="1.2.3"):
@@ -34,7 +34,7 @@ def test_strict_real_model_failures_propagate_without_mock_leakage(monkeypatch, 
     _fake_faster_whisper(monkeypatch, FailingWhisperModel)
 
     with pytest.raises(RuntimeError, match="forced"):
-        stt_extract.transcribe("input.wav", model="base-int8", strict=True)
+        asr.transcribe("input.wav", model="base-int8", strict=True)
 
     with pytest.raises(RuntimeError, match="forced"):
         stt_extract.run_stt_extract(
@@ -49,9 +49,9 @@ def test_non_strict_real_model_failure_remains_explicit_mock_fallback(monkeypatc
 
     _fake_faster_whisper(monkeypatch, FailingWhisperModel)
 
-    result = stt_extract.transcribe("input.wav", model="base-int8", strict=False)
+    result = asr.transcribe("input.wav", model="base-int8", strict=False)
 
-    assert result["text"] in stt_extract.MOCK_TEXTS.values()
+    assert result["text"] in asr.MOCK_TEXTS.values()
     assert result["stt_provenance"] == {
         "job_id": "demo-001",
         "provider": "mock",
@@ -71,9 +71,9 @@ def test_non_strict_real_model_failure_remains_explicit_mock_fallback(monkeypatc
 
 
 def test_explicit_mock_remains_usable_and_labeled():
-    result = stt_extract.transcribe("anything.wav", job_id="demo-002", model="mock")
+    result = asr.transcribe("anything.wav", job_id="demo-002", model="mock")
 
-    assert result["text"] == stt_extract.MOCK_TEXTS["demo-002"]
+    assert result["text"] == asr.MOCK_TEXTS["demo-002"]
     assert result["engine"] == "mock (forced --model mock)"
     assert result["stt_provenance"]["is_mock"] is True
     assert result["stt_provenance"]["provider"] == "mock"
@@ -109,7 +109,7 @@ def test_real_transcription_records_complete_provenance(monkeypatch):
 
     _fake_faster_whisper(monkeypatch, WhisperModel, version="1.2.3")
 
-    result = stt_extract.transcribe("clean.wav", model="base-int8", strict=True)
+    result = asr.transcribe("clean.wav", model="base-int8", strict=True)
 
     assert calls["model"] == "base"
     assert calls["device"] == "cpu"
@@ -173,7 +173,7 @@ def test_runner_forwards_strict_and_keeps_evaluator_regex_only(monkeypatch):
 
 
 def _extract(text):
-    normalized = stt_extract.normalize_text(text)
+    normalized = extract.normalize_text(text)
     segments = [{
         "id": 0,
         "text": text,
@@ -183,7 +183,7 @@ def _extract(text):
         "confidence": 0.9,
         "words": [],
     }]
-    return normalized, stt_extract.extract_entities(text, normalized["normalized_en"], segments)
+    return normalized, extract.extract_entities(text, normalized["normalized_en"], segments)
 
 
 def test_entity_spans_distinguish_unique_ambiguous_and_not_found():
@@ -251,7 +251,7 @@ def test_medasr_degrades_to_a_real_decoder_not_to_the_mock(monkeypatch):
     would have produced a chart full of facts nobody dictated. It degrades to
     faster-whisper first, and says so in the engine string.
     """
-    from base_pipeline import stt_extract
+    from base_pipeline import asr
 
     class Segment:
         text = " Paracetamol 500 mg once daily. "
@@ -268,9 +268,9 @@ def test_medasr_degrades_to_a_real_decoder_not_to_the_mock(monkeypatch):
             return iter([Segment()]), SimpleNamespace(language="en")
 
     _fake_faster_whisper(monkeypatch, WhisperModel)
-    monkeypatch.setattr(stt_extract, "transcribe_medasr",
+    monkeypatch.setattr(asr, "transcribe_medasr",
                         lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("no weights")))
-    result = stt_extract.transcribe("a.wav", job_id="x", model="medasr", strict=False)
+    result = asr.transcribe("a.wav", job_id="x", model="medasr", strict=False)
 
     assert result["stt_provenance"]["is_mock"] is False
     assert "faster-whisper" in result["engine"]
@@ -278,9 +278,9 @@ def test_medasr_degrades_to_a_real_decoder_not_to_the_mock(monkeypatch):
 
 
 def test_medasr_still_raises_under_strict(monkeypatch):
-    from base_pipeline import stt_extract
+    from base_pipeline import asr
 
-    monkeypatch.setattr(stt_extract, "transcribe_medasr",
+    monkeypatch.setattr(asr, "transcribe_medasr",
                         lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError("no weights")))
     with pytest.raises(RuntimeError):
-        stt_extract.transcribe("b.wav", job_id="x", model="medasr", strict=True)
+        asr.transcribe("b.wav", job_id="x", model="medasr", strict=True)

@@ -22,6 +22,8 @@
     "idempotency_reuse_enabled": false
   },
   "source_files": [
+    "base_pipeline/asr.py",
+    "base_pipeline/extract.py",
     "base_pipeline/stt_extract.py",
     "base_pipeline/assets/drug_list_mini.json"
   ]

@@ -125,7 +125,7 @@ def run(data_root: Path, decoder: str, *, streams: int) -> dict[str, Any]:
         raise TranscribeError(f"unknown decoder tier: {decoder!r}")
     from faster_whisper import WhisperModel
 
-    from base_pipeline.stt_extract import normalize_text
+    from base_pipeline.extract import normalize_text
 
     placement = resolve_device(decoder)
     device = placement["device"]

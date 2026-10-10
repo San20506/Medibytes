@@ -12,8 +12,8 @@ import sys
 
 import pytest
 
-from base_pipeline.stt_extract import (box_value_plausible, extract_entities, normalize_text,
-                         numwords_to_digits)
+from base_pipeline.extract import (box_value_plausible, extract_entities, normalize_text,
+                                   numwords_to_digits)
 
 
 def _ents(text):
@@ -612,7 +612,7 @@ def test_a_second_pass_span_of_no_recognised_kind_is_not_added():
 
 
 def test_a_misheard_combination_partner_is_extracted_for_review():
-    from base_pipeline.stt_extract import extract_entities, normalize_text
+    from base_pipeline.extract import extract_entities, normalize_text
     s = ("He has been advised paracetamol 650 mg and the doctor also "
          "considered the Amoxillin with clavulic acid.")
     e = extract_entities(s, normalize_text(s)["normalized_en"], [])
@@ -623,14 +623,14 @@ def test_a_misheard_combination_partner_is_extracted_for_review():
 
 
 def test_food_and_fluid_advice_creates_no_drug():
-    from base_pipeline.stt_extract import extract_entities, normalize_text
+    from base_pipeline.extract import extract_entities, normalize_text
     s = "Check his blood glucose and give plenty of fluids with food."
     assert extract_entities(s, normalize_text(s)["normalized_en"], [])["drugs"] == []
 
 
 def test_exactly_spelled_unrecorded_substance_is_not_repaired_to_a_sibling():
     """`dapagliflozin` is listed without a dispensing record; it used to come back as `canagliflozin`."""
-    from base_pipeline.stt_extract import extract_entities, normalize_text
+    from base_pipeline.extract import extract_entities, normalize_text
     text = "It is important to consult your healthcare provider before starting a new medication like Dapor tablet with dapagliflozin."
     names = [d["name"] for d in extract_entities(text, normalize_text(text)["normalized_en"], [])["drugs"]]
     assert "canagliflozin" not in names and "empagliflozin" not in names

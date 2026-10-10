@@ -194,7 +194,7 @@ def test_the_shipped_asset_knows_the_pair_that_motivated_it():
 
 @shipped_only
 def test_a_real_drug_outside_the_mini_list_now_reaches_the_chart():
-    from base_pipeline.stt_extract import extract_entities
+    from base_pipeline.extract import extract_entities
     drug_reference._CACHE = None
     text = "Give telmisartan 40 mg once daily."
     rows = extract_entities(text, text, [])["drugs"]
@@ -207,7 +207,7 @@ def test_a_real_drug_outside_the_mini_list_now_reaches_the_chart():
 
 @shipped_only
 def test_a_filler_word_before_a_dose_still_produces_no_drug():
-    from base_pipeline.stt_extract import extract_entities
+    from base_pipeline.extract import extract_entities
     drug_reference._CACHE = None
     text = "Patient was 200 mg of nothing and takes 500 mg of nothing."
     assert extract_entities(text, text, [])["drugs"] == []
@@ -221,7 +221,7 @@ def test_lab_results_are_not_prescriptions():
     # happily before `/dL`, so a line of bloodwork offers four analytes as drug
     # names. The mini list dropped them by not knowing the words; the national
     # reference knows all of them.
-    from base_pipeline.stt_extract import extract_entities
+    from base_pipeline.extract import extract_entities
     drug_reference._CACHE = None
     for text in ("Glucose 180 mg/dL, calcium 9 mg/dL, albumin 3.2 g/dL, urea 40 mg/dL.",
                  "Hemoglobin 11 g/dL, sodium 138 mmol/L."):
@@ -232,7 +232,7 @@ def test_lab_results_are_not_prescriptions():
 def test_a_concentration_that_really_is_a_dose_still_counts():
     # `mg/dL` is a lab value; `mg/ml` is how a suspension is ordered. The guard
     # has to tell them apart, or it trades false drugs for missing ones.
-    from base_pipeline.stt_extract import extract_entities
+    from base_pipeline.extract import extract_entities
     drug_reference._CACHE = None
     text = "Give amoxicillin 250 mg/ml suspension."
     assert [d["name"] for d in extract_entities(text, text, [])["drugs"]] == ["amoxicillin"]
@@ -244,7 +244,7 @@ def test_an_ordinary_word_that_is_also_a_brand_is_refused_an_exact_hit():
     # and `din` - Hindi for "day", and in this project's own demo scripts - is
     # a brand of drotaverine. An exact hit is not a guess about spelling, but
     # it is still a guess about intent.
-    from base_pipeline.stt_extract import extract_entities
+    from base_pipeline.extract import extract_entities
     drug_reference._CACHE = None
     for text in ("Patient din 500 mg tak.", "Sugar level 180 mg today.",
                  "Exam 5 mg done."):
@@ -255,7 +255,7 @@ def test_an_ordinary_word_that_is_also_a_brand_is_refused_an_exact_hit():
 def test_the_chart_keeps_the_inn_spelling_a_clinician_dictated():
     # The pack is USAN-named. A clinician who said `frusemide` must not read
     # `furosemide` back off the note, and `Crocin` charts as paracetamol.
-    from base_pipeline.stt_extract import extract_entities
+    from base_pipeline.extract import extract_entities
     drug_reference._CACHE = None
     for text, want in (("Give frusemide 40 mg IV.", "frusemide"),
                        ("Start rifampicin 450 mg OD.", "rifampicin"),
@@ -267,7 +267,7 @@ def test_the_chart_keeps_the_inn_spelling_a_clinician_dictated():
 def test_the_mini_lists_own_spelling_wins_over_the_synonym_table():
     # `furosemide` is the mini list's canonical name and its gold data is
     # written in it, so the INN bridge must not rewrite it to `frusemide`.
-    from base_pipeline.stt_extract import extract_entities
+    from base_pipeline.extract import extract_entities
     drug_reference._CACHE = None
     text = "Give furosemide 40 mg IV."
     assert [d["name"] for d in extract_entities(text, text, [])["drugs"]] == ["furosemide"]
@@ -290,7 +290,7 @@ def test_a_coined_brand_name_is_never_reached_by_fuzzing():
 def test_a_curated_alias_is_not_outranked_by_a_merely_closer_string():
     # `moxacillin` scores 0.95 against `oxacillin` and 0.90 against the mini
     # list's `amoxicillin`. The higher number is the wrong antibiotic.
-    from base_pipeline.stt_extract import extract_entities
+    from base_pipeline.extract import extract_entities
     drug_reference._CACHE = None
     text = "Start moxacillin 875 mg BID."
     rows = extract_entities(text, text, [])["drugs"]
@@ -303,7 +303,7 @@ def test_a_curated_alias_is_not_outranked_by_a_merely_closer_string():
 def test_the_dose_check_runs_without_a_model():
     # `term_validate` needs Ollama. A dose that is impossible for the matched
     # drug must be caught whether or not a model is pulled.
-    from base_pipeline.stt_extract import extract_entities
+    from base_pipeline.extract import extract_entities
     drug_reference._CACHE = None
     text = "Start hydroxazine 25 mg twice daily."
     row = extract_entities(text, text, [])["drugs"][0]
@@ -315,7 +315,7 @@ def test_the_dose_check_runs_without_a_model():
 def test_a_standard_dose_in_a_larger_unit_is_not_vetoed():
     # The regression this guards: comparing unit strings made `azithromycin
     # 1 g`, an ordinary single dose, look like a contradiction.
-    from base_pipeline.stt_extract import extract_entities
+    from base_pipeline.extract import extract_entities
     drug_reference._CACHE = None
     text = "Give azithromysin 1 g stat."
     row = extract_entities(text, text, [])["drugs"][0]
@@ -328,7 +328,7 @@ def test_every_candidate_implausible_sends_the_row_red_without_a_model():
     # `term_validate` would reject this, but it needs Ollama. With no model
     # pulled the row used to ship YELLOW - a thyroid hormone at 100x its
     # maximum dose, looking like an ordinary fuzzy match.
-    from base_pipeline.stt_extract import extract_entities
+    from base_pipeline.extract import extract_entities
     drug_reference._CACHE = None
     text = "Start levothyroksin 25 mg daily."
     row = extract_entities(text, text, [])["drugs"][0]
@@ -342,7 +342,7 @@ def test_a_dose_driven_swap_goes_red_rather_than_quietly_changing_the_drug():
     # The pack overruling the string matcher is two signals disagreeing about
     # which drug was said, which is `term_validate`'s own rule for going RED.
     # It must not swap the drug and leave the row looking merely fuzzy.
-    from base_pipeline.stt_extract import extract_entities
+    from base_pipeline.extract import extract_entities
     drug_reference._CACHE = None
     text = "Start hydroxazine 25 mcg daily."
     row = extract_entities(text, text, [])["drugs"][0]
@@ -357,7 +357,7 @@ def test_a_dose_driven_swap_goes_red_rather_than_quietly_changing_the_drug():
 def test_an_english_word_that_is_a_registered_brand_never_becomes_a_medicine():
     # 161 of the 6,943 distinct English words in this project's real ASR
     # output are registered Indian trade names.
-    from base_pipeline.stt_extract import extract_entities
+    from base_pipeline.extract import extract_entities
     drug_reference._CACHE = None
     for word in ("space", "bus", "gear", "lot", "cope", "making", "site"):
         text = f"Give {word} 500 mg daily."
@@ -368,7 +368,7 @@ def test_an_english_word_that_is_a_registered_brand_never_becomes_a_medicine():
 def test_a_brand_still_resolves_a_name_matched_some_other_way():
     # Brands are refused the power to create a row, not removed. The mini
     # list's own brand aliases must keep working.
-    from base_pipeline.stt_extract import extract_entities
+    from base_pipeline.extract import extract_entities
     drug_reference._CACHE = None
     text = "Give dolo 650 mg TDS."
     assert [d["name"] for d in extract_entities(text, text, [])["drugs"]] == ["paracetamol"]
@@ -376,7 +376,7 @@ def test_a_brand_still_resolves_a_name_matched_some_other_way():
 
 @shipped_only
 def test_the_national_reference_resolves_the_sound_alike_the_mini_list_could_not():
-    from base_pipeline.stt_extract import extract_entities, normalize_text
+    from base_pipeline.extract import extract_entities, normalize_text
     drug_reference._CACHE = None
 
     def _ents(text):

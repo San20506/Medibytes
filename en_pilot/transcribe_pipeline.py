@@ -9,7 +9,7 @@ normalisation alone recovers most of the undenoised arm's loss, so the harness
 delta and the product delta are not the same quantity.
 
 This module therefore runs the real thing: `clean_audio` with the variant's own
-backend config, then `demo.stt_extract.transcribe(..., model="medasr", strict=True)`,
+backend config, then `base_pipeline.asr.transcribe(..., model="medasr", strict=True)`,
 over the whole matrix. A refused clip is recorded as an outcome, never dropped.
 
 Enhancement is CPU-bound and parallel; decoding is GPU-bound and sequential, so
@@ -110,7 +110,8 @@ def _tasks(data_root: Path, arms: Sequence[str], work_root: Path) -> list[tuple[
 def run(
     data_root: Path, *, arms: Sequence[str], workers: int, work_root: Path
 ) -> dict[str, Any]:
-    from base_pipeline.stt_extract import normalize_text, transcribe
+    from base_pipeline.asr import transcribe
+    from base_pipeline.extract import normalize_text
 
     clean_bases = {path.stem for path in sorted((data_root / config.CLEAN_DIR).glob("*.wav"))}
     tasks = _tasks(data_root, arms, work_root)

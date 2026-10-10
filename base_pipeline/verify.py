@@ -37,7 +37,7 @@ STATUS_REJECTED = "rejected"
 
 def _haystacks(transcript):
     """(raw, normalized, digitized) transcript views for proof/numeral checks."""
-    from .stt_extract import numwords_to_digits
+    from .extract import numwords_to_digits
 
     raw = str(transcript.get("text", "") or "")
     normalized = str(transcript.get("normalized_en", "") or raw)
@@ -72,7 +72,7 @@ def _number_present(haystack, value):
 
 _BRAND_TOKEN = re.compile(r"[a-z][a-z0-9'-]*|\d+(?:\.\d+)?")
 _NUMERAL = re.compile(r"\d+(?:\.\d+)?")
-BRAND_MAX_WORDS = 3  # mirrors stt_extract.MAX_NAME_WORDS
+BRAND_MAX_WORDS = 3  # mirrors extract.MAX_NAME_WORDS
 # A number followed by one of these is a count, a duration or a vital, not a
 # strength: `site 4 times`, `came 3 days ago`, `ten 98 percent`.
 _NOT_STRENGTH = frozenset("""
@@ -96,7 +96,7 @@ def brand_mentions(text):
     zero hits; `Monitor 2` fails the range.
     """
     from . import drug_reference
-    from .stt_extract import numwords_to_digits
+    from .extract import numwords_to_digits
 
     words = _BRAND_TOKEN.findall(numwords_to_digits(str(text or "")).lower())
     out, seen = [], set()
@@ -173,7 +173,7 @@ def verify_numerals(transcript):
 def _drug_name_status(name, raw_token, candidates, matcher_pick):
     """(status, note) for one drug name against mini-list + reference."""
     from . import drug_reference
-    from .stt_extract import _load_drug_list
+    from .extract import _load_drug_list
 
     label = str(name or "").strip().lower()
     if not label:
@@ -284,7 +284,7 @@ def verify_drug(row, raw, normalized, digitized):
 
 def verify_vital(row, raw, normalized):
     """Verify one vital span: digits present + physiologically plausible."""
-    from .stt_extract import vital_span_plausible
+    from .extract import vital_span_plausible
 
     checks, notes = [], []
     span = str(row.get("text", "") or "")

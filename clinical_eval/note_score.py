@@ -123,7 +123,7 @@ def score_note(clip: gold.Clip, note: Mapping[str, Any], transcript: str,
         facts.append({"kind": "history", "fact": hist, "status": _place(
             note, "previous_diagnosis", lambda ts, p=hist: _contains(ts, p))})
 
-    from base_pipeline.stt_extract import numwords_to_digits
+    from base_pipeline.extract import numwords_to_digits
 
     heard = numwords_to_digits(transcript)
     invented, duplicates = [], 0

@@ -459,7 +459,7 @@ def gate_discharge(discharge, transcript_text, normalized_en, verified):
     Survivors keep ``min(confidence, 0.88)``; failures are counted, not fixed.
     """
     from . import drug_reference
-    from .stt_extract import _load_drug_list
+    from .extract import _load_drug_list
 
     full = f"{transcript_text} {normalized_en}"
     known = {d["name"].lower() for d in _load_drug_list()}
@@ -758,7 +758,7 @@ def _extractive_ok(item, section):
     capped at 0.80, below anything verified.
     """
     from . import drug_reference
-    from .stt_extract import NEG_PAT, _load_drug_list
+    from .extract import NEG_PAT, _load_drug_list
 
     if section not in _EXTRACTIVE_SECTIONS:
         return False

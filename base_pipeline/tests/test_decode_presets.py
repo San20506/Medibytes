@@ -4,7 +4,7 @@ import sys
 
 import pytest
 
-from base_pipeline import decode_presets, stt_extract
+from base_pipeline import asr, decode_presets
 
 
 def _fake_whisper(monkeypatch):
@@ -40,7 +40,7 @@ def test_each_preset_adds_exactly_one_change_over_its_predecessor():
 @pytest.mark.parametrize("name", list(decode_presets.PRESETS))
 def test_transcribe_uses_exactly_the_presets_arguments(monkeypatch, name):
     seen = _fake_whisper(monkeypatch)
-    res = stt_extract.transcribe("x.wav", model="base-int8", strict=True, decode=name)
+    res = asr.transcribe("x.wav", model="base-int8", strict=True, decode=name)
     assert seen["calls"][-1] == decode_presets.kwargs(name)
     assert res["stt_provenance"]["decode_preset"] == name
     assert res["stt_provenance"]["decode_kwargs"] == decode_presets.kwargs(name)
@@ -49,18 +49,18 @@ def test_transcribe_uses_exactly_the_presets_arguments(monkeypatch, name):
 def test_unknown_preset_fails_before_any_decode_and_names_the_valid_ones(monkeypatch):
     seen = _fake_whisper(monkeypatch)
     with pytest.raises(ValueError, match="beam5-en-fallback-prompt"):
-        stt_extract.transcribe("x.wav", model="base-int8", decode="turbo")
+        asr.transcribe("x.wav", model="base-int8", decode="turbo")
     assert seen["built"] == 0 and seen["calls"] == []
 
 
 @pytest.mark.parametrize("model", ["medasr", "medasr-lm"])
 def test_a_non_default_preset_is_rejected_for_medasr_not_ignored(model):
     with pytest.raises(ValueError, match="faster-whisper models only"):
-        stt_extract.transcribe("x.wav", model=model, decode="beam5")
+        asr.transcribe("x.wav", model=model, decode="beam5")
 
 
 def test_the_model_is_built_once_per_process_and_reused(monkeypatch):
     seen = _fake_whisper(monkeypatch)
-    stt_extract.transcribe("a.wav", model="tiny-int8", strict=True)
-    stt_extract.transcribe("b.wav", model="tiny-int8", strict=True, decode="beam5")
+    asr.transcribe("a.wav", model="tiny-int8", strict=True)
+    asr.transcribe("b.wav", model="tiny-int8", strict=True, decode="beam5")
     assert seen["built"] == 1 and len(seen["calls"]) == 2
