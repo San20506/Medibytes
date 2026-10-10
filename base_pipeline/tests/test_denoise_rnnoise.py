@@ -4,7 +4,6 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
-import sys
 import wave
 
 import numpy as np
@@ -16,6 +15,9 @@ from base_pipeline.audio_clean import clean_audio
 from base_pipeline.denoise import BackendId, EnhancementConfig, run_backend
 from base_pipeline.denoise_backends import rnnoise as adapter
 from base_pipeline.paths import data_root
+from arm_support import require_arm
+
+arm_available = require_arm(BackendId.RNNOISE)
 
 
 DATA_ROOT = data_root()

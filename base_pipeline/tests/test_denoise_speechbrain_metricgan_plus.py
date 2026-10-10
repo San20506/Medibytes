@@ -1,9 +1,7 @@
 """Real pinned MetricGAN+ inference: offline load, geometry, determinism, isolation."""
 from __future__ import annotations
 
-import importlib.util
 from pathlib import Path
-import sys
 import wave
 
 import numpy as np
@@ -15,14 +13,11 @@ from base_pipeline.audio_clean import clean_audio
 from base_pipeline.denoise import BackendId, BackendUnavailableError, EnhancementConfig, run_backend
 from base_pipeline.denoise_backends import speechbrain_metricgan_plus as adapter
 from base_pipeline.paths import data_root
+from arm_support import require_arm
+
+arm_available = require_arm(BackendId.SPEECHBRAIN_METRICGAN_PLUS)
 
 CORPUS = data_root() / "corpus/pilot-15-v1/noisy/sample-001.wav"
-
-
-needs_runtime = pytest.mark.skipif(
-    importlib.util.find_spec("speechbrain") is None,
-    reason="speechbrain is not installed here; the adapter reports BACKEND_UNAVAILABLE (install base_pipeline/denoise_backends/requirements-speechbrain-metricgan-plus.txt)",
-)
 
 
 def config(**overrides: object) -> EnhancementConfig:
@@ -39,7 +34,6 @@ def _corpus() -> np.ndarray:
         return np.frombuffer(wav.readframes(wav.getnframes()), dtype="<i2").astype(np.float32) / 32768
 
 
-@needs_runtime
 def test_probe_reports_the_pinned_offline_identity() -> None:
     probe = adapter.probe(config())
     assert probe.available is True
@@ -50,7 +44,6 @@ def test_probe_reports_the_pinned_offline_identity() -> None:
     assert probe.stateful is True
 
 
-@needs_runtime
 def test_real_model_is_deterministic_and_state_isolated() -> None:
     audio = _corpus()
     first = run_backend(audio, 16000, config())
@@ -72,7 +65,6 @@ def test_real_model_is_deterministic_and_state_isolated() -> None:
     assert first.metadata["model_per_call"] == 1
 
 
-@needs_runtime
 def test_every_call_builds_a_fresh_model_from_the_pinned_files() -> None:
     first = run_backend(_corpus()[:16000], 16000, config())
     second = run_backend(_corpus()[:16000], 16000, config())
@@ -87,7 +79,6 @@ def test_every_call_builds_a_fresh_model_from_the_pinned_files() -> None:
     assert "segan" not in str(first.provenance).casefold()
 
 
-@needs_runtime
 def test_real_clean_audio_preserves_wav_geometry(tmp_path: Path) -> None:
     target = tmp_path / "enhanced.wav"
     meta = clean_audio(CORPUS, target, backend=BackendId.SPEECHBRAIN_METRICGAN_PLUS, config=config())
@@ -100,7 +91,6 @@ def test_real_clean_audio_preserves_wav_geometry(tmp_path: Path) -> None:
     assert meta["sample_count_drift"] == 0
 
 
-@needs_runtime
 def test_refuses_substituted_checkpoint_variant_and_device(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

@@ -4,7 +4,6 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
-import sys
 import wave
 
 import numpy as np
@@ -22,6 +21,9 @@ from base_pipeline.denoise import (
 )
 from base_pipeline.denoise_backends import deepfilternet3 as adapter
 from base_pipeline.paths import data_root
+from arm_support import require_arm
+
+arm_available = require_arm(BackendId.DEEPFILTERNET3)
 
 
 DATA_ROOT = data_root()

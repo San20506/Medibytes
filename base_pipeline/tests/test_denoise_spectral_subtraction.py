@@ -1,9 +1,7 @@
 """Real pinned spectral subtraction: geometry, determinism, state isolation."""
 from __future__ import annotations
 
-import importlib.util
 from pathlib import Path
-import sys
 import wave
 
 import numpy as np
@@ -15,14 +13,11 @@ from base_pipeline.audio_clean import clean_audio
 from base_pipeline.denoise import BackendId, EnhancementConfig, run_backend
 from base_pipeline.denoise_backends import spectral_subtraction as adapter
 from base_pipeline.paths import data_root
+from arm_support import require_arm
+
+arm_available = require_arm(BackendId.SPECTRAL_SUBTRACTION)
 
 CORPUS = data_root() / "corpus/pilot-15-v1/noisy/sample-001.wav"
-
-
-needs_runtime = pytest.mark.skipif(
-    importlib.util.find_spec("pyroomacoustics") is None,
-    reason="pyroomacoustics is not installed here; the adapter reports BACKEND_UNAVAILABLE (install base_pipeline/denoise_backends/requirements-spectral-subtraction.txt)",
-)
 
 
 def config(**overrides: object) -> EnhancementConfig:
@@ -38,7 +33,6 @@ def _corpus() -> np.ndarray:
         return np.frombuffer(wav.readframes(wav.getnframes()), dtype="<i2").astype(np.float32) / 32768
 
 
-@needs_runtime
 def test_probe_reports_the_pinned_model_free_identity() -> None:
     probe = adapter.probe(config())
     assert probe.available is True
@@ -48,7 +42,6 @@ def test_probe_reports_the_pinned_model_free_identity() -> None:
     assert probe.native_sample_rate == 16000
 
 
-@needs_runtime
 def test_real_subtraction_preserves_geometry_and_is_deterministic() -> None:
     audio = _corpus()
     first = run_backend(audio, 16000, config())
@@ -71,7 +64,6 @@ def test_real_subtraction_preserves_geometry_and_is_deterministic() -> None:
     assert first.provenance["config_sha256"] == adapter.CONFIG_SHA256
 
 
-@needs_runtime
 def test_pinned_aggressiveness_is_measured_not_assumed() -> None:
     # The frozen row pins db_reduc=10, beta=3, alpha=1.2. Measured on a 400 Hz
     # tone at 0.2 amplitude under seeded broadband noise, that configuration
@@ -89,7 +81,6 @@ def test_pinned_aggressiveness_is_measured_not_assumed() -> None:
     after = float(np.sqrt(np.mean((output - tone) ** 2)))
     assert after > before
 
-@needs_runtime
 def test_real_clean_audio_preserves_wav_geometry(tmp_path: Path) -> None:
     target = tmp_path / "enhanced.wav"
     meta = clean_audio(CORPUS, target, backend=BackendId.SPECTRAL_SUBTRACTION, config=config())
@@ -101,7 +92,6 @@ def test_real_clean_audio_preserves_wav_geometry(tmp_path: Path) -> None:
     assert meta["sample_count_drift"] == 0
 
 
-@needs_runtime
 def test_refuses_model_claims_parameter_drift_and_wrong_rate(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="exact requested backend"):
         adapter.probe(config(variant_id="pyroomacoustics-0.10.1-ss-wiener"))

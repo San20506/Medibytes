@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-import sys
 import wave
 
 import numpy as np
@@ -14,6 +13,9 @@ from base_pipeline.audio_clean import clean_audio
 from base_pipeline.denoise import BackendId, BackendUnavailableError, EnhancementConfig, run_backend
 from base_pipeline.denoise_backends import sherpa_gtcrn_simple as adapter
 from base_pipeline.paths import data_root
+from arm_support import require_arm
+
+arm_available = require_arm(BackendId.SHERPA_GTCRN_SIMPLE)
 
 CORPUS = data_root() / "corpus/pilot-15-v1/noisy/sample-001.wav"
 

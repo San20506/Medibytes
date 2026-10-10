@@ -1,9 +1,7 @@
 """Real pinned VoiceFixer mode-0 restoration and fail-closed checkpoint handling."""
 from __future__ import annotations
 
-import importlib.util
 from pathlib import Path
-import sys
 import wave
 
 import numpy as np
@@ -15,15 +13,12 @@ from base_pipeline.audio_clean import clean_audio
 from base_pipeline.denoise import BackendId, BackendUnavailableError, EnhancementConfig, run_backend
 from base_pipeline.denoise_backends import voicefixer_mode0 as adapter
 from base_pipeline.paths import data_root
+from arm_support import require_arm
+
+arm_available = require_arm(BackendId.VOICEFIXER_MODE0)
 
 CORPUS = data_root() / "corpus/pilot-15-v1/noisy/sample-001.wav"
 SHORT = CORPUS
-
-
-needs_runtime = pytest.mark.skipif(
-    importlib.util.find_spec("voicefixer") is None,
-    reason="voicefixer is not installed here; the adapter reports BACKEND_UNAVAILABLE (install base_pipeline/denoise_backends/requirements-voicefixer-mode0.txt)",
-)
 
 
 def config(**overrides: object) -> EnhancementConfig:
@@ -39,7 +34,6 @@ def _corpus() -> np.ndarray:
         return np.frombuffer(wav.readframes(wav.getnframes()), dtype="<i2").astype(np.float32) / 32768
 
 
-@needs_runtime
 def test_probe_reports_the_pinned_restoration_identity() -> None:
     probe = adapter.probe(config())
     assert probe.available is True
@@ -49,7 +43,6 @@ def test_probe_reports_the_pinned_restoration_identity() -> None:
     assert probe.native_sample_rate == 44100
 
 
-@needs_runtime
 def test_real_restoration_preserves_geometry_and_is_deterministic() -> None:
     audio = _corpus()
     first = run_backend(audio, 16000, config())
@@ -71,7 +64,6 @@ def test_real_restoration_preserves_geometry_and_is_deterministic() -> None:
     assert first.provenance["device"] == "cpu"
 
 
-@needs_runtime
 def test_real_clean_audio_round_trips_back_to_16_khz(tmp_path: Path) -> None:
     target = tmp_path / "restored.wav"
     meta = clean_audio(SHORT, target, backend=BackendId.VOICEFIXER_MODE0, config=config())
@@ -95,7 +87,6 @@ def test_truncated_analysis_checkpoint_is_refused_not_loaded(
         run_backend(np.ones(16000, dtype=np.float32) * 0.1, 16000, config())
 
 
-@needs_runtime
 def test_refuses_substituted_variant_mode_and_device(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="exact requested backend"):
         adapter.probe(config(variant_id="0.1.3-mode1"))

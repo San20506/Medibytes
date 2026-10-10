@@ -15,6 +15,7 @@ Ollama, llama.cpp or vLLM.
 """
 import argparse
 import csv
+import importlib
 import json
 import os
 import re
@@ -53,6 +54,22 @@ def denoiser_config(backend):
             # Relative to the data root; an absolute path in a config still wins.
             raw["model_path"] = paths.data_root() / raw["model_path"]
     return EnhancementConfig(backend=backend, **raw)
+
+
+def arm_status(backend):
+    """None when `backend` can run here, else why not.
+
+    The adapter's own probe under the backend's shipped config: importing the adapter is not
+    enough, since it imports cleanly while the package or model it wraps is missing.
+    """
+    from .denoise import _module_name
+
+    try:
+        module = importlib.import_module(f"{__package__}.denoise_backends.{_module_name(backend)}")
+        probe = module.probe(denoiser_config(backend))
+    except Exception as error:
+        return f"{type(error).__name__}: {error}"
+    return None if getattr(probe, "available", False) else getattr(probe, "reason", "no reason given")
 
 
 def _slug(text):

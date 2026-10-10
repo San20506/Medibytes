@@ -10,7 +10,6 @@ Docs: http://127.0.0.1:8000/docs
 from __future__ import annotations
 
 import hashlib
-import importlib
 import json
 import os
 import shutil
@@ -23,8 +22,8 @@ from typing import Any
 from fastapi import FastAPI, Form, HTTPException, UploadFile, File
 from fastapi.responses import JSONResponse
 
-from .denoise import BackendId, _module_name
-from .run import denoiser_config, run_clip
+from .denoise import BackendId
+from .run import arm_status, run_clip
 
 _REPO = Path(__file__).resolve().parent.parent
 JOB_ROOT = Path(os.environ.get("MEDIBYTES_JOB_ROOT", _REPO / "runs" / "_server_jobs"))
@@ -121,23 +120,9 @@ def _run(job_id: str, source: Path, params: dict[str, Any]) -> None:
 
 
 def _probe(backend: BackendId) -> str:
-    """Whether a denoiser would actually run, via the adapter's own probe().
-
-    Importing the adapter is not enough -- it imports cleanly while the package
-    it wraps is missing, and the job then fails at run time instead.  Model
-    backends are probed under their shipped config, since they refuse a bare one.
-    """
-    try:
-        module = importlib.import_module(
-            f"{__package__}.denoise_backends.{_module_name(backend)}")
-    except Exception as error:
-        return f"unavailable: {type(error).__name__}: {error}"
-    try:
-        probe = module.probe(denoiser_config(backend))
-    except Exception as error:
-        return f"unavailable: {error}"
-    return "available" if getattr(probe, "available", False) else (
-        f"unavailable: {getattr(probe, 'reason', 'no reason given')}")
+    """Whether a denoiser would actually run, via the adapter's own probe() (see run.arm_status)."""
+    reason = arm_status(backend)
+    return "available" if reason is None else f"unavailable: {reason}"
 
 
 @app.get("/api/health")

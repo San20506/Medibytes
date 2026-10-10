@@ -1,9 +1,7 @@
 """Real pinned NeMo Schroedinger-bridge denoising: geometry, determinism, isolation."""
 from __future__ import annotations
 
-import importlib.util
 from pathlib import Path
-import sys
 import wave
 
 import numpy as np
@@ -15,14 +13,11 @@ from base_pipeline.audio_clean import clean_audio
 from base_pipeline.denoise import BackendId, BackendUnavailableError, EnhancementConfig, run_backend
 from base_pipeline.denoise_backends import nemo_se_den_sb_16k as adapter
 from base_pipeline.paths import data_root
+from arm_support import require_arm
+
+arm_available = require_arm(BackendId.NEMO_SE_DEN_SB_16K)
 
 CORPUS = data_root() / "corpus/pilot-15-v1/noisy/sample-001.wav"
-
-
-needs_runtime = pytest.mark.skipif(
-    importlib.util.find_spec("nemo") is None,
-    reason="nemo-toolkit is not installed here; the adapter reports BACKEND_UNAVAILABLE (install base_pipeline/denoise_backends/requirements-nemo-se-den-sb-16k.txt)",
-)
 
 
 def config(**overrides: object) -> EnhancementConfig:
@@ -39,7 +34,6 @@ def _corpus() -> np.ndarray:
         return np.frombuffer(wav.readframes(wav.getnframes()), dtype="<i2").astype(np.float32) / 32768
 
 
-@needs_runtime
 def test_probe_reports_the_pinned_research_only_identity() -> None:
     probe = adapter.probe(config())
     assert probe.available is True
@@ -50,7 +44,6 @@ def test_probe_reports_the_pinned_research_only_identity() -> None:
     assert probe.stateful is True
 
 
-@needs_runtime
 def test_real_model_is_deterministic_and_state_isolated() -> None:
     audio = _corpus()
     first = run_backend(audio, 16000, config())
@@ -76,7 +69,6 @@ def test_real_model_is_deterministic_and_state_isolated() -> None:
     assert first.provenance["cuda_version"] != "unavailable" or first.provenance["device"] == "cpu"
 
 
-@needs_runtime
 def test_loss_target_compatibility_shim_is_exactly_two_remaps() -> None:
     output = run_backend(_corpus()[:16000], 16000, config())
     assert output.metadata["loss_target_remaps"] == 2
@@ -86,7 +78,6 @@ def test_loss_target_compatibility_shim_is_exactly_two_remaps() -> None:
     assert output.provenance["model_sha256"] == adapter.MODEL_SHA256
 
 
-@needs_runtime
 def test_real_clean_audio_preserves_wav_geometry(tmp_path: Path) -> None:
     output = tmp_path / "enhanced.wav"
     meta = clean_audio(CORPUS, output, backend=BackendId.NEMO_SE_DEN_SB_16K, config=config())
@@ -99,7 +90,6 @@ def test_real_clean_audio_preserves_wav_geometry(tmp_path: Path) -> None:
     assert meta["sample_count_drift"] == 0
 
 
-@needs_runtime
 def test_refuses_substituted_model_variant_and_parameters(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="exact requested backend"):
         adapter.probe(config(variant_id="official-checkpoint-audit"))
