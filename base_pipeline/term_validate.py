@@ -1,4 +1,4 @@
-"""Stage 4b - semantic validation of fuzzy-matched drug terms (new.md Sec 7).
+"""Stage 4b - semantic validation of fuzzy-matched drug terms (docs/PIPELINE_ARCHITECTURE_REPORT.md Sec 7).
 
 The regex extractor's sound-alike fallback picks difflib's top scorer and ships
 it at YELLOW.  That is the right call for `asithromysin -> azithromycin` and the

@@ -6,6 +6,39 @@ detail (OpenSpec change, evidence directory, or commit).
 
 ## Unreleased
 
+### Sanitised the tree and isolated the approaches (2026-10-10)
+
+One package per concern, one name per approach. Branch `chore/sanitize-isolate`, one commit per
+step; the regression oracle (3 clips through `base_pipeline.run`) is identical to before at every
+commit that touches behaviour, ignoring only timing fields.
+
+- **`demo/` retired** (`demo/pipeline.py`, `app.py`, the template fill, cached outputs, `run_demo.py`).
+  `base_pipeline` + root `app.py` + `base_pipeline/server.py` replace it. The HTTP backend now runs
+  `run.run_clip`; it lost the `template` field, the html/docx exports and the `denoiser_config`
+  upload, and `use_llm` is `true|false`. `/api/eval/run` moved to `clinical_eval/server.py` so the
+  pipeline imports nothing from eval. Old numerals tests now assert on `vitals_kind.vitals_box_kind`;
+  mutating the SpO2 cue regex fails four of them.
+- **`stt_extract.py` split** into `asr.py`, `extract.py` and the glue (a pure move: all 98 top-level
+  definitions are AST-identical). The eval provenance hashes cover all three files.
+- **Approaches are named presets** (`base_pipeline/presets.py`, `run.py --preset`) and every run
+  writes `manifest.json`. The Streamlit page takes its choices from the same registry; its copy of
+  `run_clip` is gone.
+- **Nine denoiser arms ported** from their `eval/*` branches into `base_pipeline/denoise_backends/`.
+  Real-backend tests skip with a reason when the runtime is absent; each arm was run under its
+  original interpreter. `build_rnnoise.sh` no longer uses `-march=native`: the compiled wrapper is
+  pinned by digest, the new build differs from the old by 1 LSB on the pilot clips, and the old
+  library is kept as `librnnoise_medibytes.so.native-e066ae51`. Frozen method configs keep
+  `model_sha256: null` on purpose (tests assert it); the adapters pin the digest and record it per sample.
+- **`en_pilot/` moved to `eval/en_pilot/`** and runs against the in-tree adapters, not per-arm worktrees.
+- **Shareable:** the machine-local data root comes from `base_pipeline.paths.data_root()`
+  (`$MEDIBYTES_EVAL_DATA_ROOT`); no code or config names a home directory. `eval/corpus/selection.json`
+  still does, in an unread field, because it is the frozen corpus policy whose digest every corpus
+  build records. `/home/sandy` paths remain in git history already pushed to three remotes; rewriting
+  history is a separate decision.
+- **Clutter:** `SESSION-SUMMARY.md`, the 2026-10-05 spec and `docs/new.md` moved to `docs/archive/`;
+  14 uncited run directories moved to `<data-root>/runs-archive/`; the pilot write-up and its 12-row
+  comparison reports were carried over from `eval/compare-20260927` to `docs/` and `eval/reports/`.
+
 ### Independent ground truth for all 30 clips; allergen-as-order closed (2026-10-08)
 
 **Ground truth (`clinical_eval/gold_v2.json`, loader `gold_v2.py`).** Three independent
@@ -615,7 +648,7 @@ candidate set, independent of the lexicon.
 
 ### Clinical extraction fixes, MedASR LM fusion, denoiser comparison (2026-10-05)
 
-Full detail in `2026-10-05-best-configuration-spec.md`, which also consolidates
+Full detail in `docs/archive/2026-10-05-best-configuration-spec.md`, which also consolidates
 the per-session writeups from 2026-09-29 through 2026-10-05. Those files were
 removed from the working tree in this commit and remain in git history; the
 entries below in this changelog still describe what each concluded.

@@ -14,7 +14,7 @@ Draft, 2026-10-08. Every number comes from a command run on this machine today (
 
 ### A1. What it does
 
-Source: `base_pipeline/README.md`. The package was ported from `demo/` to `base_pipeline/`; the move is staged in git, not yet committed.
+Source: `README.md`. The package was ported from `demo/` to `base_pipeline/` (commit `b2f5414`); `stt_extract.py` has since been split into `asr.py`, `extract.py` and the glue.
 
 ```
 audio -> clean (16 kHz mono, RMS normalise, VAD)  [denoiser: none by default]

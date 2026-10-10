@@ -1,4 +1,4 @@
-"""LLM-primary clinical extraction (new.md Sec 5) with regex offline fallback.
+"""LLM-primary clinical extraction (docs/PIPELINE_ARCHITECTURE_REPORT.md Sec 5) with regex offline fallback.
 
 Chain: STT transcript + template field schema -> local LLM strict JSON
 (chief_complaint, vitals, drugs, allergies, denied, diagnosis, followup,
