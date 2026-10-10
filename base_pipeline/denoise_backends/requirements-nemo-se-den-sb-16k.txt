@@ -1,0 +1,5 @@
+# Python 3.12. Install after base_pipeline/requirements.txt, in a venv dedicated to this arm.
+# The asr extra is required: nemo.collections.audio.models.enhancement imports
+# nemo.collections.asr transitively, so the audio extra alone cannot restore
+# the pinned checkpoint.
+nemo-toolkit[audio,asr]==2.7.3

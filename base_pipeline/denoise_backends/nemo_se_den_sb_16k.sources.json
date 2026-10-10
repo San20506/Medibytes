@@ -1,0 +1,23 @@
+{
+  "source": "https://github.com/NVIDIA-NeMo/Speech",
+  "declared_source_revision": "1d4ee423806d461f9146ae982f9da8eb32495ae7",
+  "package": "nemo-toolkit[audio,asr]==2.7.3",
+  "package_license": "Apache-2.0",
+  "model_repo": "nvidia/se_den_sb_16k_small",
+  "model_revision": "fe9725b1ae90f7f6b11d9b95c5f9ccec736a211f",
+  "model_url": "https://huggingface.co/nvidia/se_den_sb_16k_small/resolve/fe9725b1ae90f7f6b11d9b95c5f9ccec736a211f/se_den_sb_16k_small.nemo",
+  "model_sha256": "9de7f36d08df4109402e68e41d78e781c8da6a3d7691a674c5231b840151ff09",
+  "model_bytes": 100853760,
+  "model_license": "CC-BY-NC-SA-4.0",
+  "model_license_note": "Research and development only; not a commercial or clinical use grant.",
+  "embedded_config_sha256": "a0a84565756dee2254fa05b5f2ca6c1726d8c9872ea550817a0554f829094317",
+  "documented_deviation": {
+    "id": "loss-target-module-path",
+    "cause": "The checkpoint's embedded model_config.yaml sets loss_encoded and loss_time to nemo.collections.audio.losses.MSELoss and nemo.collections.audio.losses.MAELoss. In nemo-toolkit 2.7.3 both classes live in nemo.collections.audio.losses.audio, so an unmodified restore_from aborts before any weight tensor is read, with 'Instantiation of unsafe target ... is blocked'.",
+    "handling": "The adapter reads the embedded config from the archive in memory and rewrites exactly those two _target_ strings before calling restore_from. The archive on disk is never modified, the embedded config digest is pinned, and the remap count is asserted to be exactly 2.",
+    "what_is_not_changed": "encoder, estimator, noise_schedule, sampler, every weight tensor, model weights load path and strict=True. No other checkpoint or model is loaded.",
+    "impact_on_measurement": "Training-only loss objects are not used during inference. Sampler process=ode and num_steps=10 are set after restore, and the sampler class is asserted to be SBSampler."
+  },
+  "runtime": "Python 3.12.14, torch 2.14.0+cu130, CUDA 13.0, actual device recorded per run; one fresh restore and ODE sampler per sample",
+  "execution": "16 kHz mono [1,1,T] in, 16 kHz mono [1,1,T] out, seed 1729, num_steps 10, no length compensation required"
+}
