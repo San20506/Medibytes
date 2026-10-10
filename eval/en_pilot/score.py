@@ -21,8 +21,8 @@ from typing import Any, Sequence
 
 import numpy as np
 
-from en_pilot import config, stats
-from en_pilot.enhance import read_wav_mono16
+from eval.en_pilot import config, stats
+from eval.en_pilot.enhance import read_wav_mono16
 from eval.corpus.audio import read_pcm16
 from eval.corpus.paths import resolve_data_root
 from eval.metrics import (
@@ -366,7 +366,7 @@ def _code_state() -> dict[str, str]:
         return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
 
     for relative in ("base_pipeline/asr.py", "base_pipeline/extract.py", "base_pipeline/stt_extract.py",
-                     "eval/metrics.py", "en_pilot/score.py", "en_pilot/stats.py"):
+                     "eval/metrics.py", "eval/en_pilot/score.py", "eval/en_pilot/stats.py"):
         value = digest(relative)
         if value:
             state[relative] = value
@@ -388,7 +388,7 @@ def _code_state() -> dict[str, str]:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="en_pilot.score",
+        prog="eval.en_pilot.score",
         description="Score the English pilot and apply the pre-declared decision rule.",
     )
     parser.add_argument(

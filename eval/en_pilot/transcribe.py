@@ -19,8 +19,8 @@ from typing import Any, Sequence
 
 import numpy as np
 
-from en_pilot import config
-from en_pilot.enhance import read_wav_mono16
+from eval.en_pilot import config
+from eval.en_pilot.enhance import read_wav_mono16
 from eval.corpus.paths import resolve_data_root
 
 MAX_STREAMS = 6
@@ -244,7 +244,7 @@ def run(data_root: Path, decoder: str, *, streams: int) -> dict[str, Any]:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="en_pilot.transcribe",
+        prog="eval.en_pilot.transcribe",
         description="Transcribe enhanced conditions with one Whisper decoder tier.",
     )
     parser.add_argument(

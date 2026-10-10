@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from en_pilot import config
-from en_pilot import stats
-from en_pilot.stats import StatsError, bootstrap_paired, decide
+from eval.en_pilot import config
+from eval.en_pilot import stats
+from eval.en_pilot.stats import StatsError, bootstrap_paired, decide
 from eval.reporting import cluster_bootstrap
 
 
@@ -63,7 +63,7 @@ def test_adopt_requires_proof_of_no_harm_and_at_most_two_points():
 
 
 def test_sentence_aggregation_collapses_repeated_content():
-    from en_pilot.stats import aggregate_by_sentence
+    from eval.en_pilot.stats import aggregate_by_sentence
 
     deltas = {"sample-001": -0.01, "sample-002": -0.03, "sample-003": 0.01}
     sentence_of = {"sample-001": "1510", "sample-002": "1510", "sample-003": "1620"}
@@ -75,7 +75,7 @@ def test_sentence_aggregation_collapses_repeated_content():
 
 
 def test_sentence_aggregation_refuses_an_unknown_base():
-    from en_pilot.stats import aggregate_by_sentence
+    from eval.en_pilot.stats import aggregate_by_sentence
 
     with pytest.raises(StatsError, match="no sentence identity"):
         aggregate_by_sentence({"sample-001": -0.01}, {})

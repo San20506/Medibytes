@@ -1,6 +1,6 @@
 """Measure the two variants through the *shipped* chain, not the eval harness.
 
-`en_pilot.transcribe_medasr` decodes the pilot's pre-enhanced files, which is the
+`eval.en_pilot.transcribe_medasr` decodes the pilot's pre-enhanced files, which is the
 right way to isolate an enhancement backend but is not what `demo/pipeline.py`
 does. The demo calls `demo.audio_clean.clean_audio`, which RMS-normalises the
 signal to 0.1 before handing it to the backend, resamples and validates after,
@@ -28,7 +28,7 @@ from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import Any, Sequence
 
-from en_pilot import config
+from eval.en_pilot import config
 from eval.corpus.paths import resolve_data_root
 
 DECODER_ID = "medasr-pipeline"
@@ -177,7 +177,7 @@ def run(
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="en_pilot.transcribe_pipeline",
+        prog="eval.en_pilot.transcribe_pipeline",
         description="Measure the two variants through demo/pipeline.py's own chain.",
     )
     parser.add_argument(

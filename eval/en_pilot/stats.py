@@ -23,7 +23,7 @@ from typing import Any, Iterable, Mapping, Sequence
 
 import numpy as np
 
-from en_pilot import config
+from eval.en_pilot import config
 from eval.reporting import holm_adjust
 
 DECISION_COLUMNS = (

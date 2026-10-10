@@ -22,7 +22,7 @@ from typing import Any, Sequence
 
 import numpy as np
 
-from en_pilot import config
+from eval.en_pilot import config
 from eval.corpus.audio import (
     SAMPLE_RATE,
     active_mask,
@@ -290,7 +290,7 @@ def _write_manifest(path: Path, records: list[dict[str, Any]]) -> None:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="en_pilot.build_matrix",
+        prog="eval.en_pilot.build_matrix",
         description="Build the real-DEMAND-noise matrix for the English pilot.",
     )
     parser.add_argument(

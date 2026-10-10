@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 DATA_ROOT_DEFAULT = "/home/sandy/.local/share/medibytes-eval"
 ENVIRONMENT_NAME = "MEDIBYTES_EVAL_DATA_ROOT"
@@ -41,7 +41,7 @@ BASELINE_BACKEND = "none"
 
 # One venv and one repository per backend. A shared interpreter would cache the
 # first repository's `demo` package for every backend after it, so the driver
-# launches `en_pilot.enhance` once per backend under that backend's own venv.
+# launches `eval.en_pilot.enhance` once per backend under that backend's own venv.
 # Same values as `evidence/matrix-v2/matrix_eval.py:45-50`.
 BACKEND_REPOS = {
     "sherpa-gtcrn-simple": "/home/sandy/Projects/Medibytes-worktrees/eval-sherpa-onnx",

@@ -1,6 +1,6 @@
 """Transcribe the already-enhanced pilot conditions with `google/medasr`.
 
-This is `en_pilot.transcribe`'s sibling for a decoder that is not Whisper and
+This is `eval.en_pilot.transcribe`'s sibling for a decoder that is not Whisper and
 not CTranslate2, so none of that module's device probe applies: MedASR is a
 CTC model driven by torch, and `torch.cuda.is_available()` is the honest test.
 
@@ -8,7 +8,7 @@ The audio is not re-enhanced.  Every arm reads the exact PCM16 files the n=40
 study already wrote under `en-pilot-run/enhance-<backend>/`, so a MedASR row and
 a Whisper row for the same `(condition_id, backend)` are the same bytes decoded
 twice.  Hypotheses go through `base_pipeline.extract.normalize_text`, the same
-function `en_pilot.transcribe` uses, so the two decoders are scored by one rule.
+function `eval.en_pilot.transcribe` uses, so the two decoders are scored by one rule.
 """
 
 from __future__ import annotations
@@ -22,8 +22,8 @@ from typing import Any, Sequence
 
 import numpy as np
 
-from en_pilot import config
-from en_pilot.enhance import read_wav_mono16
+from eval.en_pilot import config
+from eval.en_pilot.enhance import read_wav_mono16
 from eval.corpus.paths import resolve_data_root
 
 DECODER_ID = "medasr"
@@ -38,7 +38,7 @@ class TranscribeError(RuntimeError):
 def load_jobs(data_root: Path, arms: Sequence[str]) -> list[dict[str, Any]]:
     """One job per (matrix condition, arm) plus one clean floor per base.
 
-    Identical job set to `en_pilot.transcribe.load_jobs`, restricted to the arms
+    Identical job set to `eval.en_pilot.transcribe.load_jobs`, restricted to the arms
     this comparison needs, so the scored cells line up row for row.
     """
 
@@ -215,7 +215,7 @@ def run(
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="en_pilot.transcribe_medasr",
+        prog="eval.en_pilot.transcribe_medasr",
         description="Transcribe the enhanced pilot conditions with google/medasr.",
     )
     parser.add_argument(

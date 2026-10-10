@@ -4,14 +4,14 @@ Two questions, one scoring rule:
 
 1. **Does the denoising layer help MedASR?**  Paired per-base WER delta of the
    denoised arm against the `none` arm, bootstrapped over whole bases exactly as
-   `en_pilot.stats` does for the Whisper study, and judged by the same
+   `eval.en_pilot.stats` does for the Whisper study, and judged by the same
    pre-declared rule (`adopt` iff `ci95_high <= 0` and `ci95_low >= -0.02`).
 2. **Where does MedASR sit against the incumbent decoder?**  Paired per-base WER
    delta of MedASR against Whisper-`small` on the identical `none` audio, read
    from the n=40 study's own `transcripts-small.jsonl`.  Reported for context;
    it gates nothing.
 
-Every WER here is `en_pilot.score.word_error_rate` — the frozen normalisation and
+Every WER here is `eval.en_pilot.score.word_error_rate` — the frozen normalisation and
 the frozen tokeniser — so these numbers are directly comparable to
 `en-pilot-run/results/per-condition.csv`.
 """
@@ -28,10 +28,10 @@ from typing import Any, Collection, Iterable, Mapping, Sequence
 
 import numpy as np
 
-from en_pilot import config, stats
-from en_pilot.score import ScoreError, read_manifest, word_error_rate
-from en_pilot.transcribe_medasr import DECODER_ID as HARNESS_DECODER_ID
-from en_pilot.transcribe_medasr import MODEL_ID
+from eval.en_pilot import config, stats
+from eval.en_pilot.score import ScoreError, read_manifest, word_error_rate
+from eval.en_pilot.transcribe_medasr import DECODER_ID as HARNESS_DECODER_ID
+from eval.en_pilot.transcribe_medasr import MODEL_ID
 from eval.corpus.paths import resolve_data_root
 
 PER_CONDITION_COLUMNS = (
@@ -432,7 +432,7 @@ def score(
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="en_pilot.score_medasr",
+        prog="eval.en_pilot.score_medasr",
         description="Score the denoised and undenoised MedASR variants.",
     )
     parser.add_argument(

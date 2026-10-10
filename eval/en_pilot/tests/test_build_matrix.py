@@ -10,8 +10,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from en_pilot import build_matrix
-from en_pilot.build_matrix import MatrixError, derive_seed, fit_noise, quantize
+from eval.en_pilot import build_matrix
+from eval.en_pilot.build_matrix import MatrixError, derive_seed, fit_noise, quantize
 from eval.corpus.audio import active_mask, write_pcm16
 
 

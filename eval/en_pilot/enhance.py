@@ -30,7 +30,7 @@ from typing import Any, Sequence
 
 import numpy as np
 
-from en_pilot import config
+from eval.en_pilot import config
 from eval.corpus.paths import resolve_data_root
 
 CSV_COLUMNS = (
@@ -286,7 +286,7 @@ def run(
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="en_pilot.enhance",
+        prog="eval.en_pilot.enhance",
         description="Enhance every matrix condition with one pinned backend.",
     )
     parser.add_argument("--backend", required=True, choices=list(config.BACKENDS))

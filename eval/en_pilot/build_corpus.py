@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 from typing import Any, Sequence
 
-from en_pilot import config
+from eval.en_pilot import config
 from eval.corpus.manifest import file_sha256, transcript_sha256, write_manifest_jsonl
 from eval.corpus.media import (
     bundled_decoder,
@@ -160,7 +160,7 @@ def _build_base(
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="en_pilot.build_corpus",
+        prog="eval.en_pilot.build_corpus",
         description="Build the 40-base English-only pilot corpus.",
     )
     parser.add_argument(
