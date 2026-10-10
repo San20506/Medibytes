@@ -1,0 +1,18 @@
+{
+  "source": "https://github.com/speechbrain/speechbrain",
+  "source_revision": "89ead74d163463d30c62329a09cfdb4c54f5abc1",
+  "package": "speechbrain==1.1.1",
+  "package_license": "Apache-2.0",
+  "model_repo": "speechbrain/metricgan-plus-voicebank",
+  "model_revision": "a196ce26b3bdace6fa1d819017584bdbcce462a8",
+  "model_license": "Apache-2.0",
+  "checkpoint_url": "https://huggingface.co/speechbrain/metricgan-plus-voicebank/resolve/a196ce26b3bdace6fa1d819017584bdbcce462a8/enhance_model.ckpt",
+  "checkpoint_sha256": "147bfb866bac8264603546e035bf283370e716ed2f4b7412d308d2bcee88304f",
+  "checkpoint_bytes": 7586021,
+  "hyperparams_url": "https://huggingface.co/speechbrain/metricgan-plus-voicebank/resolve/a196ce26b3bdace6fa1d819017584bdbcce462a8/hyperparams.yaml",
+  "hyperparams_sha256": "7bcc0835243c27f78907de0df27bc5f33d533a675787ab2eff34188404ea225a",
+  "digest_policy": "The model repository publishes a 40-hex git oid, not a SHA-256. Both digests above were computed locally from the downloaded files and are pinned in the adapter; probe fails closed if either file drifts.",
+  "interface": "speechbrain.inference.enhancement.SpectralMaskEnhancement.from_hparams with FetchConfig(allow_network=False) against a staged local directory, then enhance_batch",
+  "execution": "16 kHz CPU; one fresh model and one enhance_batch call per sample; MetricGAN+ spectral mask only, no SepFormer or SEGAN pooling; input length must be preserved exactly",
+  "runtime": "Python 3.12.14, speechbrain 1.1.1, torch 2.14.0+cu130, device cpu, network disabled"
+}
