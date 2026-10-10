@@ -36,7 +36,7 @@ commit that touches behaviour, ignoring only timing fields.
 - **Shareable:** the machine-local data root comes from `base_pipeline.paths.data_root()`
   (`$MEDIBYTES_EVAL_DATA_ROOT`); no code or config names a home directory. `eval/corpus/selection.json`
   still does, in an unread field, because it is the frozen corpus policy whose digest every corpus
-  build records. `/home/sandy` paths remain in git history already pushed to three remotes; rewriting
+  build records. Absolute home-directory paths remain in git history already pushed to three remotes; rewriting
   history is a separate decision.
 - **Clutter:** `SESSION-SUMMARY.md`, the 2026-10-05 spec and `docs/new.md` moved to `docs/archive/`;
   14 uncited run directories moved to `<data-root>/runs-archive/`; the pilot write-up and its 12-row
