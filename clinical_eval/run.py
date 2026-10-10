@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from clinical_eval.prepare import DATA_ROOT_DEFAULT, corpus_root, load_manifest
+from base_pipeline.paths import data_root
 
 DENOISERS = ("none", "sherpa-gtcrn-simple")
 # The default sweep. `clinical_eval/server.py` falls back to this for `/api/eval/run`,
@@ -39,7 +40,7 @@ OPTIONAL_DECODERS = ("medasr-lm",)
 ACCEPTED_DECODERS = DECODERS + OPTIONAL_DECODERS + ("tiny-int8", "medium", "large-v3", "mock")
 GTCRN = {
     "variant_id": "gtcrn-simple-1.13.8",
-    "model_path": "/home/sandy/.local/share/medibytes-eval/models/sherpa-onnx/gtcrn_simple.onnx",
+    "model_path": str(data_root() / "models/sherpa-onnx/gtcrn_simple.onnx"),
     "model_sha256": "e77603ac0c23dac3227dd2d7135b3a585cbee2679048aecfa886657d3ae1b534",
     "parameters": {"sample_rate": 16000, "provider": "cpu", "num_threads": 1},
 }

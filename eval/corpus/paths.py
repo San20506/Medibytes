@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-DEFAULT_DATA_ROOT = Path("/home/sandy/.local/share/medibytes-eval")
 ENVIRONMENT_NAME = "MEDIBYTES_EVAL_DATA_ROOT"
 
 

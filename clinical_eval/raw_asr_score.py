@@ -19,8 +19,9 @@ from pathlib import Path
 from typing import Any
 
 from clinical_eval.syn_med_score import HEARD_RATIO, heard
+from base_pipeline.paths import data_root
 
-CORPUS = Path("/home/sandy/.local/share/medibytes-eval/corpus")
+CORPUS = data_root() / "corpus"
 HERE = Path(__file__).parent
 RUNAWAY_FACTOR = 3
 BOOTSTRAP_ROUNDS = 10_000

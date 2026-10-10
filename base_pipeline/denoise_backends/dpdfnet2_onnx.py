@@ -14,6 +14,7 @@ from ..denoise import (
     EnhancementConfig,
     EnhancementOutput,
 )
+from ..paths import data_root
 
 BACKEND = BackendId.DPDFNET2_ONNX
 VARIANT = "v0.6.0"
@@ -31,7 +32,7 @@ def _model(config: EnhancementConfig) -> Path:
         raise ValueError("DPDFNet2 parameters differ from the frozen method config")
     if config.model_sha256 != MODEL_SHA256 or config.model_path is None:
         raise ValueError("DPDFNet2 requires the pinned model SHA-256 and path")
-    expected = Path("/home/sandy/.local/share/medibytes-eval") / MODEL_RELATIVE
+    expected = data_root() / MODEL_RELATIVE
     if config.model_path != expected or config.model_path.is_symlink():
         raise ValueError("DPDFNet2 requires the exact local, non-symlink model path")
     try:

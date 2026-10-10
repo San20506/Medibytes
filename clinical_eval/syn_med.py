@@ -22,10 +22,11 @@ import re
 import tarfile
 from pathlib import Path
 from typing import Sequence
+from base_pipeline.paths import data_root
 
 REPO = "united-we-care/United-Syn-Med"
 TARBALL = "data/audio/test.tar.gz"
-DATA_ROOT_DEFAULT = Path("/home/sandy/.local/share/medibytes-eval")
+DATA_ROOT_DEFAULT = data_root()
 CORPUS_ID = "united-syn-med-40"
 HELDOUT_CORPUS_ID = "united-syn-med-40b"   # disjoint pool: tar members after the first 600
 SEED = 1729

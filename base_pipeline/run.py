@@ -22,7 +22,7 @@ import sys
 import time
 from pathlib import Path
 
-from . import decode_presets, manifest, presets
+from . import decode_presets, manifest, paths, presets
 from .audio_clean import BackendId, EnhancementConfig, clean_audio
 from .stt_extract import run_stt_extract
 
@@ -50,7 +50,8 @@ def denoiser_config(backend):
         raw = json.loads(shipped.read_text(encoding="utf-8"))
         raw.pop("backend", None)
         if "model_path" in raw:
-            raw["model_path"] = Path(raw["model_path"])
+            # Relative to the data root; an absolute path in a config still wins.
+            raw["model_path"] = paths.data_root() / raw["model_path"]
     return EnhancementConfig(backend=backend, **raw)
 
 

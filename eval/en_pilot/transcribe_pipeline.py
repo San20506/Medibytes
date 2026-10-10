@@ -30,6 +30,7 @@ from typing import Any, Sequence
 
 from eval.en_pilot import config
 from eval.corpus.paths import resolve_data_root
+from base_pipeline.paths import data_root
 
 DECODER_ID = "medasr-pipeline"
 MODEL_ID = "google/medasr"
@@ -39,9 +40,7 @@ BACKEND_CONFIGS: dict[str, dict[str, Any]] = {
     "none": {"variant_id": "none"},
     "sherpa-gtcrn-simple": {
         "variant_id": "gtcrn-simple-1.13.8",
-        "model_path": (
-            "/home/sandy/.local/share/medibytes-eval/models/sherpa-onnx/gtcrn_simple.onnx"
-        ),
+        "model_path": str(data_root() / "models/sherpa-onnx/gtcrn_simple.onnx"),
         "model_sha256": (
             "e77603ac0c23dac3227dd2d7135b3a585cbee2679048aecfa886657d3ae1b534"
         ),

@@ -12,7 +12,6 @@ from eval.contracts import ContractValidationError, load_json, resolve_contained
 from eval.reporting import ReportingError, compare_runs, verify_run
 from eval.runner import (
     BACKEND_IDS,
-    DEFAULT_DATA_ROOT,
     RunnerError,
     _load_and_verify_corpus,
     preflight_method,

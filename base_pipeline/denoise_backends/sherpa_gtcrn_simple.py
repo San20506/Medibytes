@@ -12,12 +12,13 @@ from ..denoise import (
     BackendId, BackendProbe, BackendUnavailableError, EnhancementConfig,
     EnhancementOutput,
 )
+from ..paths import data_root
 
 BACKEND = BackendId.SHERPA_GTCRN_SIMPLE
 VARIANT = "gtcrn-simple-1.13.8"
 SOURCE_REVISION = "362ddf2c077e3c04759c93b7a47212a5c9108ca7"
 MODEL_SHA256 = "e77603ac0c23dac3227dd2d7135b3a585cbee2679048aecfa886657d3ae1b534"
-MODEL_PATH = Path("/home/sandy/.local/share/medibytes-eval/models/sherpa-onnx/gtcrn_simple.onnx")
+MODEL_PATH = data_root() / "models/sherpa-onnx/gtcrn_simple.onnx"
 PARAMETERS = {"sample_rate": 16000, "provider": "cpu", "num_threads": 1}
 FRAME_HOP = 256  # 16 ms native GTCRN hop; offline API returns complete hops only.
 

@@ -47,7 +47,6 @@ METHOD_CONFIG_ROOT = CONFIG_ROOT / "methods"
 DOWNSTREAM_CONFIG_PATH = CONFIG_ROOT / "downstream-v1.json"
 CATALOG_PATH = CONFIG_ROOT / "method-catalog.json"
 MANIFEST_PATH = EVAL_ROOT / "corpus" / "manifest.jsonl"
-DEFAULT_DATA_ROOT = Path("/home/sandy/.local/share/medibytes-eval")
 TARGET_SAMPLE_RATE = 16_000
 
 BACKEND_IDS = (

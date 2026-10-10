@@ -8,10 +8,11 @@ exact values that produced a decision.
 from __future__ import annotations
 
 from pathlib import Path
+from base_pipeline.paths import data_root
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-DATA_ROOT_DEFAULT = "/home/sandy/.local/share/medibytes-eval"
+DATA_ROOT_DEFAULT = str(data_root())
 ENVIRONMENT_NAME = "MEDIBYTES_EVAL_DATA_ROOT"
 
 CORPUS_ID = "en-40-v1"

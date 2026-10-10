@@ -22,9 +22,10 @@ from pathlib import Path
 from typing import Any, Sequence
 
 import numpy as np
+from base_pipeline.paths import data_root
 
 CORPUS_ID = "medibytes-med-7"
-DATA_ROOT_DEFAULT = Path("/home/sandy/.local/share/medibytes-eval")
+DATA_ROOT_DEFAULT = data_root()
 SAMPLE_RATE = 16_000
 CHANNEL_MODES = ("mix", "left", "right")
 
@@ -154,7 +155,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="clinical_eval.prepare")
     parser.add_argument(
         "--zip",
-        default="/home/sandy/Downloads/MediBytes_Medical_Audio_Dataset.zip",
+        required=True,
+        help="the MediBytes medical audio dataset archive to stage",
     )
     parser.add_argument("--data-root", default=str(DATA_ROOT_DEFAULT))
     arguments = parser.parse_args(argv)
