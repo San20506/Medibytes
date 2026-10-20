@@ -42,6 +42,15 @@ provisional diagnosis, investigations, admission plan with orders).
   transcript*, not clinician-reviewed. A field not dictated is `null`.
 - **Denials.** A denied symptom ("denies cough") always ends in `pertinent_negatives`, even if the model
   filed it as a complaint; a denied history ("denies diabetes") is dropped.
+- **What the gate also does.** A value the model gave without a source gets one from the first transcript
+  sentence that holds its numbers and words (marked `needs_review`); polarity and drug role (already taking
+  vs newly ordered) are read from the whole sentence; sex, mode and no-known-allergies need cue words; a
+  verified drug the model left out is added to the orders or drug history by its sentence cue (`needs_review`,
+  dose and unit only); an explicit "no known allergies" sets that field. Every drop is listed with its reason
+  in `provenance.drops`.
+- **Using a local model.** `WHISPER_DEMO_FORM_URL=http://localhost:11434/v1 WHISPER_DEMO_FORM_MODEL=llama3.2:3b
+  OPENAI_API_KEY=anything` keeps the transcript on the machine. A 3B model is grounded but misses fields (see the
+  CHANGELOG); the gate protects precision, not recall.
 - **No silent fallback.** With no key, an HTTP error, or unusable JSON after 3 attempts the job still
   succeeds with an all-null form and `provenance.llm_engine = "form-skipped (reason)"`.
 - Not measured: there is no scorer, so recall on real dictation is unknown.

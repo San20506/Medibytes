@@ -11,18 +11,29 @@ detail (OpenSpec change, evidence directory, or commit).
 `POST /api/jobs` takes `template=discharge|admission` (default `discharge`, unchanged). `admission` fills
 the 17-section form in `whisper_demo/admission_schema.json` and returns it as `form`.
 
-- **Heard-only gate.** An OpenAI model (`gpt-4.1-mini` by default) proposes values; `admission.gate` keeps a
-  value only if its source sentence is verbatim in the transcript, its numbers were spoken, a drug name is a
-  real drug that appears in the cited sentence, and the symptom's own clause is not negated. Unproven values
-  are dropped and counted.
+- **Heard-only gate.** A chat model (OpenAI `gpt-4.1-mini` by default; any OpenAI-compatible server via
+  `WHISPER_DEMO_FORM_URL`) proposes values; `admission.gate` keeps a value only if its source sentence is a
+  verbatim transcript quote, its numbers were spoken, a drug name is a real drug in the cited sentence, and its
+  clause is not negated. Unproven values are dropped and counted.
 - **Denials fixed for this template.** The extractor marks "Denies cough" `negated: False` (the root of the
   discharge note's denied-symptom bug); the form routes it to `pertinent_negatives` by a clause-level cue
   check. The discharge template is deliberately unchanged.
-- **Gate hole found by test.** A drug that is real but was never said ("warfarin") passed the planned rule
-  (real drug + real cited sentence); the gate now also requires the name in the cited sentence, or the
-  extractor tying that drug to that sentence (repaired names).
-- **Data leaves the machine** for this template; `provenance.sent_to` records the host. Verified with a fake
-  model only: no live OpenAI run, latency or cost figure has been recorded yet.
+- **Run against local `llama3.2:3b` (Ollama), 2026-10-20, UTI dictation.** Form step 13 s (2,522 tokens), STT
+  3.6 s. The first run exposed gate defects, all fixed with regression tests: bare model values were discarded
+  uncounted (vitals vanished); a one-word citation ("pain") counted as a quote; an invented `sex` cited to a
+  real sentence passed; negation was lost when the model quoted only a clause ("specifically to sulfa
+  drugs" filed as an allergen of a patient with no known allergies); a just-ordered drug sat in
+  `drug_history`; dose/unit/frequency came back scrambled; a real drug nobody said ("warfarin") passed. The
+  gate now derives a source for bare values (`needs_review`), reads polarity and drug role from the whole
+  transcript sentence, requires cue words for sex/mode/no-known-allergies, re-slots obviously misfiled drug
+  fields, backfills verified drugs the model omitted (`needs_review`, dose/unit only), and lists every drop
+  with its reason in `provenance.drops`. Orders gained a `duration` field.
+- **What the 3B model still gets wrong** (grounded, so the gate keeps it): `chief_complaints` empty (dysuria went
+  to `reason_for_admission`), one of two denied symptoms missed, and "symptom relief" filed as advice with
+  status `verified` (which only means quoted from the transcript). Expect better recall from a larger model.
+- **Data leaves the machine** for the default (OpenAI) configuration; `provenance.sent_to` records the host.
+  The OpenAI key in `~/Downloads/env (1)` is rejected by OpenAI (`invalid_api_key`), so no OpenAI run has been
+  done; the local run above is the only live evidence.
 
 ### Rebuilt on Whisper large-v3; retired the MedASR/denoiser tree (2026-10-20)
 

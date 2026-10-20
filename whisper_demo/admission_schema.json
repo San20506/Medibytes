@@ -1261,6 +1261,13 @@
                       "null"
                     ]
                   },
+                  "duration": {
+                    "type": [
+                      "string",
+                      "number",
+                      "null"
+                    ]
+                  },
                   "route": {
                     "type": [
                       "string",
