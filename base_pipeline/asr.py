@@ -281,12 +281,22 @@ def _whisper_model(WhisperModel, size, model):
     return _WHISPER_MODELS[key]
 
 
+# faster-whisper model names as callers spell them -> the size handed to `WhisperModel`.
+WHISPER_SIZES = {"tiny-int8": "tiny", "base-int8": "base", "small-int8": "small",
+                 "medium": "medium", "large-v3": "large-v3"}
+KNOWN_MODELS = ("medasr", "medasr-lm", "mock", *WHISPER_SIZES)
+
+
 def transcribe(clean_wav, job_id="demo-001", model="medasr", strict: bool = False,
                decode=decode_presets.DEFAULT):
     """Transcribe with explicit mock fixtures or strict/fallback real STT.
 
     `decode` names a preset from `decode_presets` and applies to faster-whisper models only.
+    An unknown `model` raises whatever `strict` says: it is a configuration error, not a runtime
+    failure, and a fallback here would measure a different engine than the one requested.
     """
+    if model not in KNOWN_MODELS:
+        raise ValueError(f"unknown STT model {model!r}; valid models: {', '.join(KNOWN_MODELS)}")
     decode_presets.get(decode)  # unknown names fail before any audio is decoded
     if decode != decode_presets.DEFAULT and model in ("medasr", "medasr-lm"):
         raise ValueError(f"decode preset {decode!r} applies to faster-whisper models only, "
@@ -322,8 +332,7 @@ def transcribe(clean_wav, job_id="demo-001", model="medasr", strict: bool = Fals
     try:
         import faster_whisper as faster_whisper_module
         from faster_whisper import WhisperModel
-        size = {"tiny-int8": "tiny", "base-int8": "base", "small-int8": "small",
-                "medium": "medium", "large-v3": "large-v3"}.get(model, "tiny")
+        size = WHISPER_SIZES[model]
         wm, _device, _compute = _whisper_model(WhisperModel, size, model)
         decode_kwargs = decode_presets.kwargs(decode)
         segments, info = wm.transcribe(clean_wav, **decode_kwargs)

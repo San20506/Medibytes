@@ -24,6 +24,7 @@ import time
 from pathlib import Path
 
 from . import decode_presets, manifest, paths, presets
+from .asr import KNOWN_MODELS
 from .audio_clean import BackendId, EnhancementConfig, clean_audio
 from .stt_extract import run_stt_extract
 
@@ -258,8 +259,9 @@ def build_parser():
                     help="output folder (default runs/<timestamp>)")
     ap.add_argument("--denoiser", action="append", choices=[b.value for b in BackendId],
                     help="repeat to compare arms side by side (default: none)")
-    ap.add_argument("--model",
-                    help="medasr (default) | small-int8 | base-int8 | medasr-lm | mock")
+    ap.add_argument("--model", choices=KNOWN_MODELS,
+                    help="speech-to-text engine (default medasr; faster-whisper sizes are "
+                         "tiny-int8 | base-int8 | small-int8 | medium | large-v3)")
     ap.add_argument("--no-second-pass", action="store_true",
                     help="skip the second decoder that recovers drug names the first missed")
     ap.add_argument("--decode", choices=list(decode_presets.PRESETS),

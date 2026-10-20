@@ -15,6 +15,7 @@ import argparse
 import json
 import random
 import re
+import unicodedata
 from pathlib import Path
 from typing import Any
 
@@ -29,7 +30,25 @@ BOOTSTRAP_SEED = 1729
 
 
 def tokens(text: str) -> list[str]:
-    return re.findall(r"[a-z0-9]+", text.lower().replace("'", "").replace("-", " "))
+    """Words of `text`: letters, combining marks and digits in any script.
+
+    Marks (Unicode M*) stay inside the word: Devanagari and Tamil vowel signs, the anusvara and the
+    virama are marks, and `\\w` or an `[a-z]` class would cut a word at each one. NFC makes the
+    precomposed and decomposed spellings of a letter one word; joiners (ZWJ/ZWNJ) are removed so
+    they neither split a word nor make two spellings differ. ASCII input tokenises as it always did.
+    """
+    text = unicodedata.normalize("NFC", text).lower().replace("'", "").replace("-", " ")
+    text = text.replace("‌", "").replace("‍", "")
+    words, word = [], []
+    for ch in text:
+        if unicodedata.category(ch)[0] in "LMN":
+            word.append(ch)
+        elif word:
+            words.append("".join(word))
+            word = []
+    if word:
+        words.append("".join(word))
+    return words
 
 
 def edits(ref: list[str], hyp: list[str]) -> int:

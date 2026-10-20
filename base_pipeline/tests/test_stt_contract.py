@@ -21,6 +21,21 @@ def _fake_faster_whisper(monkeypatch, whisper_model, version="1.2.3"):
     monkeypatch.setitem(sys.modules, "faster_whisper", module)
 
 
+@pytest.mark.parametrize("strict", [True, False])
+@pytest.mark.parametrize("name", ["small", "large", "whisper", "sarvam", ""])
+def test_unknown_model_raises_instead_of_running_a_different_engine(monkeypatch, strict, name):
+    # `small` (for `small-int8`) used to reach `.get(model, "tiny")` and silently run Whisper tiny;
+    # in non-strict mode a raise from inside the Whisper try-block would have become a mock.
+    _fake_faster_whisper(monkeypatch, lambda *a, **k: pytest.fail("a decoder was built"))
+    with pytest.raises(ValueError, match=r"unknown STT model .*valid models: .*small-int8"):
+        asr.transcribe("x.wav", model=name, strict=strict)
+
+
+def test_every_advertised_model_name_is_known():
+    assert {"medasr", "medasr-lm", "mock", "tiny-int8", "base-int8", "small-int8", "medium",
+            "large-v3"} <= set(asr.KNOWN_MODELS)
+
+
 @pytest.mark.parametrize("failure_phase", ["model_load", "transcription"])
 def test_strict_real_model_failures_propagate_without_mock_leakage(monkeypatch, failure_phase):
     class FailingWhisperModel:

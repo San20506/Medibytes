@@ -64,6 +64,15 @@ def test_job_runs_every_stage_and_reports_what_actually_ran(client):
     assert body["observed"]["mismatches"] == []
 
 
+def test_an_unknown_model_is_rejected_at_submit_not_run_as_another_engine(client):
+    c, server = client
+    before = len(server._jobs)
+    rejected = _submit(c, model="small")        # a near-miss of `small-int8`
+    assert rejected.status_code == 400
+    assert "unknown model" in rejected.json()["detail"] and "small-int8" in rejected.json()["detail"]
+    assert len(server._jobs) == before
+
+
 def test_distinct_configs_do_not_collide_on_one_job_id(client):
     c, _ = client
     one = _submit(c, denoiser="none").json()["job_id"]

@@ -8,6 +8,20 @@ def test_tokenisation_lowercases_drops_apostrophes_and_splits_hyphens():
     assert r.tokens("Doctor's L-Cet M Tab, 500 mg.") == ["doctors", "l", "cet", "m", "tab", "500", "mg"]
 
 
+def test_tokenisation_keeps_whole_devanagari_and_tamil_words():
+    # combining vowel signs, the anusvara and the virama are marks (Mn/Mc), not letters
+    assert r.tokens("हिंदी भाषा, पैरासिटामोल 500 mg दें।") == ["हिंदी", "भाषा", "पैरासिटामोल", "500", "mg", "दें"]
+    assert r.tokens("காய்ச்சல் 101 டிகிரி, Dolo 650") == ["காய்ச்சல்", "101", "டிகிரி", "dolo", "650"]
+
+
+def test_tokenisation_treats_equivalent_unicode_spellings_as_one_word():
+    ka, nukta, zwj, zwnj, ssa = chr(0x915), chr(0x93C), chr(0x200D), chr(0x200C), chr(0x937)
+    qa = chr(0x958)                                              # क़ as one code point, vs ka + nukta
+    assert qa != ka + nukta
+    assert r.tokens(qa) == r.tokens(ka + nukta) and len(r.tokens(qa)) == 1
+    assert r.tokens(ka + zwj + ssa) == r.tokens(ka + ssa) == r.tokens(ka + zwnj + ssa)  # joiners do not split
+
+
 def test_edit_distance_counts_substitution_insertion_deletion():
     assert r.edits(["a", "b", "c"], ["a", "b", "c"]) == 0
     assert r.edits(["a", "b", "c"], ["a", "x", "c"]) == 1

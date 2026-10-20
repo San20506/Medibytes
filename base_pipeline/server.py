@@ -22,6 +22,7 @@ from typing import Any
 from fastapi import FastAPI, Form, HTTPException, UploadFile, File
 from fastapi.responses import JSONResponse
 
+from .asr import KNOWN_MODELS
 from .denoise import BackendId
 from .run import arm_status, run_clip
 
@@ -156,6 +157,9 @@ async def create_job(
         BackendId(denoiser)
     except ValueError:
         raise HTTPException(status_code=400, detail=f"unknown denoiser: {denoiser}")
+    if model not in KNOWN_MODELS:
+        raise HTTPException(status_code=400,
+                            detail=f"unknown model: {model}; valid models: {', '.join(KNOWN_MODELS)}")
     if use_llm not in ("true", "false"):
         raise HTTPException(status_code=400, detail="use_llm must be true|false")
 
