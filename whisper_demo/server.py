@@ -9,6 +9,8 @@ Run:  python -m whisper_demo        (http://127.0.0.1:8001/docs)
 Env:  WHISPER_DEMO_JOB_ROOT        job and upload directory (default: whisper_demo/jobs)
       WHISPER_DEMO_CORS_ORIGINS    comma-separated origins allowed to call the API (default: none)
       WHISPER_DEMO_PRELOAD         "0" skips loading the model at startup (default "1")
+      WHISPER_DEMO_FORM_MODEL/URL  chat model and server for template=admission (default gpt-4.1-mini on
+                                   api.openai.com, key from OPENAI_API_KEY). The TRANSCRIPT IS SENT THERE.
       WHISPER_DEMO_MAX_UPLOAD_BYTES, WHISPER_DEMO_HOST, WHISPER_DEMO_PORT
 """
 from __future__ import annotations
@@ -26,7 +28,7 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from . import pipeline, stt
+from . import admission, pipeline, stt
 from .llm_client import llm_available
 
 JOB_ROOT = Path(os.environ.get("WHISPER_DEMO_JOB_ROOT", Path(__file__).resolve().parent / "jobs"))
@@ -84,7 +86,7 @@ def _run(job_id: str, source: Path, params: dict[str, Any]) -> None:
     try:
         ran = pipeline.run(source, out_dir, job_id=job_id, language=params["language"],
                            use_llm=params["use_llm"], validate_terms=params["validate_terms"],
-                           context_repair=params["context_repair"])
+                           context_repair=params["context_repair"], template=params["template"])
     except Exception as error:  # a failed job must not take the worker down
         _set(job_id, status="failed", error=f"{type(error).__name__}: {error}")
         return
@@ -96,7 +98,8 @@ def _run(job_id: str, source: Path, params: dict[str, Any]) -> None:
                    "fallback_reason": provenance.get("fallback_reason"),
                    "detected_language": provenance.get("detected_language"),
                    "is_mock": provenance.get("is_mock", False),
-                   "llm_engine": (ran["entities"] or {}).get("llm_engine", "")})
+                   "llm_engine": (ran["entities"] or {}).get("llm_engine", ""),
+                   "form_engine": ((ran.get("form") or {}).get("provenance") or {}).get("llm_engine", "")})
 
 
 def _bool(name: str, value: str) -> bool:
@@ -115,6 +118,7 @@ def health() -> dict[str, Any]:
             counts[record.get("status", "?")] = counts.get(record.get("status", "?"), 0) + 1
     return {"status": "ok", "stt": {**stt.status(), "startup_error": _startup["error"]},
             "llm": {"available": bool(ok), "reason": "" if ok else str(why)},
+            "form_llm": admission.status(), "templates": list(pipeline.TEMPLATES),
             "languages": list(LANGUAGE_CHOICES), "job_root": str(JOB_ROOT), "jobs": counts}
 
 
@@ -125,6 +129,7 @@ async def create_job(
     use_llm: str = Form("false"),
     validate_terms: str = Form("auto"),
     context_repair: str = Form("false"),
+    template: str = Form("discharge"),
 ) -> JSONResponse:
     suffix = Path(file.filename or "").suffix.lower()
     if suffix not in ALLOWED_SUFFIXES:
@@ -132,12 +137,15 @@ async def create_job(
     if language not in LANGUAGE_CHOICES:
         raise HTTPException(status_code=400,
                             detail=f"unknown language: {language}; valid: {', '.join(LANGUAGE_CHOICES)}")
+    if template not in pipeline.TEMPLATES:
+        raise HTTPException(status_code=400,
+                            detail=f"unknown template: {template}; valid: {', '.join(pipeline.TEMPLATES)}")
     if validate_terms not in ("auto", "true", "false"):
         raise HTTPException(status_code=400, detail="validate_terms must be auto|true|false")
     params = {"language": None if language == "auto" else language,
               "use_llm": _bool("use_llm", use_llm),
               "validate_terms": {"auto": "auto", "true": True, "false": False}[validate_terms],
-              "context_repair": _bool("context_repair", context_repair)}
+              "context_repair": _bool("context_repair", context_repair), "template": template}
 
     UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
     job_id = "job-" + uuid.uuid4().hex[:12]
@@ -171,6 +179,8 @@ def get_job(job_id: str) -> dict[str, Any]:
             "requested": record.get("params"), "observed": record.get("observed"),
             "audio": result.get("audio"), "transcript": result.get("transcript"),
             "entities": result.get("entities"), "discharge": result.get("discharge"),
+            "template": result.get("template") or (record.get("params") or {}).get("template"),
+            "form": result.get("form"),
             "seconds": result.get("seconds"), "output_dir": record.get("output_dir")}
 
 

@@ -11,7 +11,7 @@ import json
 import time
 from pathlib import Path
 
-from . import audio, stt
+from . import admission, audio, stt
 from .extract import (_LAB_REQUEST, _annotate_entity_spans, _chart_name, _load_drug_list,
                       _reconcile_allergens, detect_lang_tag, extract_entities, normalize_text)
 from .llm_client import default_model, llm_available
@@ -124,10 +124,20 @@ def extract_from_transcript(stt_result, *, job_id, use_llm=False, validate_terms
     return transcript, {"job_id": job_id, **ent}
 
 
+TEMPLATES = ("discharge", "admission")
+
+
 def run(audio_path, out_dir, *, job_id=None, language=None, use_llm=False,
-        validate_terms="auto", context_repair=False, llm_model=None):
-    """One clip through the whole chain. Raises on a decode or STT failure; never mocks."""
+        validate_terms="auto", context_repair=False, llm_model=None, template="discharge"):
+    """One clip through the whole chain. Raises on a decode or STT failure; never mocks.
+
+    `template` picks the structured output: `discharge` (six-section note, local LLM) or
+    `admission` (admission form, sent to the form LLM; see admission.py).
+    """
     from .verify import verify
+
+    if template not in TEMPLATES:
+        raise ValueError(f"unknown template {template!r}; valid: {', '.join(TEMPLATES)}")
 
     audio_path, out_dir = Path(audio_path), Path(out_dir)
     llm_model = llm_model or default_model()  # so provenance names the model, not None
@@ -150,19 +160,24 @@ def run(audio_path, out_dir, *, job_id=None, language=None, use_llm=False,
     except Exception as err:  # verification must never break a run
         entities["verify"] = {"facts": [], "summary": {"error": f"{type(err).__name__}: {err}"}}
     t = time.perf_counter()
-    entities["discharge"] = _discharge(transcript, entities, use_llm, llm_model)
-    try:
-        from .llm_extract import stamp_schema
+    form = None
+    if template == "admission":
+        form = admission.fill(transcript, entities["verify"])
+    else:
+        entities["discharge"] = _discharge(transcript, entities, use_llm, llm_model)
+        try:
+            from .llm_extract import stamp_schema
 
-        entities["discharge"] = stamp_schema(entities["discharge"])
-    except Exception:
-        pass
-    seconds["llm_note"] = round(time.perf_counter() - t, 2)
-    result = {"audio": meta, "transcript": transcript, "entities": entities,
-              "verify": entities["verify"], "discharge": entities["discharge"],
+            entities["discharge"] = stamp_schema(entities["discharge"])
+        except Exception:
+            pass
+    seconds["llm_note" if template == "discharge" else "form"] = round(time.perf_counter() - t, 2)
+    result = {"template": template, "audio": meta, "transcript": transcript, "entities": entities,
+              "verify": entities["verify"], "discharge": entities.get("discharge"), "form": form,
               "seconds": seconds}
-    for name, obj in (("transcript.json", transcript), ("entities.json", entities),
-                      ("verify.json", entities["verify"]), ("discharge.json", entities["discharge"]),
-                      ("audio_meta.json", meta)):
+    outputs = [("transcript.json", transcript), ("entities.json", entities),
+               ("verify.json", entities["verify"]), ("audio_meta.json", meta)]
+    outputs.append(("admission.json", form) if form else ("discharge.json", entities["discharge"]))
+    for name, obj in outputs:
         (out_dir / name).write_text(json.dumps(obj, indent=2, ensure_ascii=False), encoding="utf-8")
     return result

@@ -91,3 +91,52 @@ def test_stt_failure_marks_the_job_failed_without_a_mock(client, wav_bytes, monk
     assert body["status"] == "failed"
     assert "model could not load" in body["error"]
     assert body["transcript"] is None
+
+
+def test_health_reports_the_form_llm_without_the_key(client, monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-secret-value")
+    body = client.get("/api/health").json()
+    assert body["form_llm"]["key_present"] is True
+    assert body["templates"] == ["discharge", "admission"]
+    assert "sk-secret-value" not in str(body)
+
+
+def test_unknown_template_is_400(client, wav_bytes):
+    r = client.post("/api/jobs", files={"file": ("clip.wav", wav_bytes)}, data={"template": "opd"})
+    assert r.status_code == 400
+
+
+def test_default_template_is_discharge_and_has_no_form(client, wav_bytes):
+    r = client.post("/api/jobs", files={"file": ("clip.wav", wav_bytes)}, data={"validate_terms": "false"})
+    body = _wait(client, r.json()["job_id"])
+    assert body["template"] == "discharge" and body["form"] is None and body["discharge"]
+
+
+def test_admission_template_returns_the_form_and_no_discharge(client, wav_bytes, monkeypatch):
+    import json
+
+    from whisper_demo import admission
+
+    sent = "Give azithromycin 500 mg once daily 3 days."
+    reply = {"admission_plan": {"orders": [{"drug": "azithromycin", "dose": 500, "unit": "mg",
+                                            "source_sentence": sent, "confidence": 0.9}]}}
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setattr(admission, "_chat", lambda prompt, **kw: (json.dumps(reply), {}))
+    r = client.post("/api/jobs", files={"file": ("clip.wav", wav_bytes)},
+                    data={"template": "admission", "validate_terms": "false"})
+    body = _wait(client, r.json()["job_id"])
+    assert body["status"] == "succeeded", body["error"]
+    assert body["template"] == "admission" and body["discharge"] is None
+    assert body["form"]["form"]["admission_plan"]["orders"][0]["drug"] == "azithromycin"
+    assert body["observed"]["form_engine"].startswith("form:")
+    assert (server.JOB_ROOT / "jobs" / r.json()["job_id"] / "admission.json").is_file()
+
+
+def test_admission_without_a_key_still_succeeds_with_a_labelled_empty_form(client, wav_bytes, monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("CHATGPT_API_KEY", raising=False)
+    r = client.post("/api/jobs", files={"file": ("clip.wav", wav_bytes)}, data={"template": "admission"})
+    body = _wait(client, r.json()["job_id"])
+    assert body["status"] == "succeeded"
+    assert "form-skipped" in body["form"]["provenance"]["llm_engine"]
+    assert body["form"]["form"]["chief_complaints"] == []

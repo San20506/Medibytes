@@ -6,6 +6,24 @@ detail (OpenSpec change, evidence directory, or commit).
 
 ## Unreleased
 
+### Admission form from the transcript, `template=admission` (2026-10-20)
+
+`POST /api/jobs` takes `template=discharge|admission` (default `discharge`, unchanged). `admission` fills
+the 17-section form in `whisper_demo/admission_schema.json` and returns it as `form`.
+
+- **Heard-only gate.** An OpenAI model (`gpt-4.1-mini` by default) proposes values; `admission.gate` keeps a
+  value only if its source sentence is verbatim in the transcript, its numbers were spoken, a drug name is a
+  real drug that appears in the cited sentence, and the symptom's own clause is not negated. Unproven values
+  are dropped and counted.
+- **Denials fixed for this template.** The extractor marks "Denies cough" `negated: False` (the root of the
+  discharge note's denied-symptom bug); the form routes it to `pertinent_negatives` by a clause-level cue
+  check. The discharge template is deliberately unchanged.
+- **Gate hole found by test.** A drug that is real but was never said ("warfarin") passed the planned rule
+  (real drug + real cited sentence); the gate now also requires the name in the cited sentence, or the
+  extractor tying that drug to that sentence (repaired names).
+- **Data leaves the machine** for this template; `provenance.sent_to` records the host. Verified with a fake
+  model only: no live OpenAI run, latency or cost figure has been recorded yet.
+
 ### Rebuilt on Whisper large-v3; retired the MedASR/denoiser tree (2026-10-20)
 
 `whisper_demo/` is now the base. Removed from the working tree: `base_pipeline/` (MedASR default,

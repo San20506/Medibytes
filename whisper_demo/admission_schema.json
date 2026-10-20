@@ -1,0 +1,1327 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Admission note (heard-only, proof-grounded)",
+  "type": "object",
+  "required": [
+    "form"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "form": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "patient",
+        "admission",
+        "chief_complaints",
+        "history_of_present_illness",
+        "pertinent_negatives",
+        "past_medical_history",
+        "past_surgical_history",
+        "drug_history",
+        "allergies",
+        "family_history",
+        "personal_history",
+        "vitals",
+        "general_examination",
+        "systemic_examination",
+        "provisional_diagnosis",
+        "investigations_advised",
+        "admission_plan"
+      ],
+      "properties": {
+        "patient": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "required": [
+                "value",
+                "source_sentence"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "source_sentence": {
+                  "type": "string"
+                },
+                "confidence": {
+                  "type": "number"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "verified",
+                    "needs_review"
+                  ]
+                }
+              }
+            },
+            "age": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "required": [
+                "value",
+                "source_sentence"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "source_sentence": {
+                  "type": "string"
+                },
+                "confidence": {
+                  "type": "number"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "verified",
+                    "needs_review"
+                  ]
+                }
+              }
+            },
+            "sex": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "required": [
+                "value",
+                "source_sentence"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "source_sentence": {
+                  "type": "string"
+                },
+                "confidence": {
+                  "type": "number"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "verified",
+                    "needs_review"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "admission": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "reason_for_admission": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "required": [
+                "value",
+                "source_sentence"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "source_sentence": {
+                  "type": "string"
+                },
+                "confidence": {
+                  "type": "number"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "verified",
+                    "needs_review"
+                  ]
+                }
+              }
+            },
+            "mode": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "required": [
+                "value",
+                "source_sentence"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "source_sentence": {
+                  "type": "string"
+                },
+                "confidence": {
+                  "type": "number"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "verified",
+                    "needs_review"
+                  ]
+                }
+              }
+            },
+            "department_or_ward": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "required": [
+                "value",
+                "source_sentence"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "source_sentence": {
+                  "type": "string"
+                },
+                "confidence": {
+                  "type": "number"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "verified",
+                    "needs_review"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "chief_complaints": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "source_sentence"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "complaint": {
+                "type": [
+                  "string",
+                  "number",
+                  "null"
+                ]
+              },
+              "duration": {
+                "type": [
+                  "string",
+                  "number",
+                  "null"
+                ]
+              },
+              "source_sentence": {
+                "type": "string"
+              },
+              "confidence": {
+                "type": "number"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "verified",
+                  "needs_review"
+                ]
+              }
+            }
+          }
+        },
+        "history_of_present_illness": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "source_sentence"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "text": {
+                "type": [
+                  "string",
+                  "number",
+                  "null"
+                ]
+              },
+              "source_sentence": {
+                "type": "string"
+              },
+              "confidence": {
+                "type": "number"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "verified",
+                  "needs_review"
+                ]
+              }
+            }
+          }
+        },
+        "pertinent_negatives": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "source_sentence"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "symptom": {
+                "type": [
+                  "string",
+                  "number",
+                  "null"
+                ]
+              },
+              "source_sentence": {
+                "type": "string"
+              },
+              "confidence": {
+                "type": "number"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "verified",
+                  "needs_review"
+                ]
+              }
+            }
+          }
+        },
+        "past_medical_history": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "source_sentence"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "condition": {
+                "type": [
+                  "string",
+                  "number",
+                  "null"
+                ]
+              },
+              "duration_or_status": {
+                "type": [
+                  "string",
+                  "number",
+                  "null"
+                ]
+              },
+              "source_sentence": {
+                "type": "string"
+              },
+              "confidence": {
+                "type": "number"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "verified",
+                  "needs_review"
+                ]
+              }
+            }
+          }
+        },
+        "past_surgical_history": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "source_sentence"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "procedure": {
+                "type": [
+                  "string",
+                  "number",
+                  "null"
+                ]
+              },
+              "source_sentence": {
+                "type": "string"
+              },
+              "confidence": {
+                "type": "number"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "verified",
+                  "needs_review"
+                ]
+              }
+            }
+          }
+        },
+        "drug_history": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "source_sentence"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "drug": {
+                "type": [
+                  "string",
+                  "number",
+                  "null"
+                ]
+              },
+              "dose": {
+                "type": [
+                  "string",
+                  "number",
+                  "null"
+                ]
+              },
+              "unit": {
+                "type": [
+                  "string",
+                  "number",
+                  "null"
+                ]
+              },
+              "frequency": {
+                "type": [
+                  "string",
+                  "number",
+                  "null"
+                ]
+              },
+              "source_sentence": {
+                "type": "string"
+              },
+              "confidence": {
+                "type": "number"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "verified",
+                  "needs_review"
+                ]
+              }
+            }
+          }
+        },
+        "allergies": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "no_known_allergies": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "required": [
+                "value",
+                "source_sentence"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "source_sentence": {
+                  "type": "string"
+                },
+                "confidence": {
+                  "type": "number"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "verified",
+                    "needs_review"
+                  ]
+                }
+              }
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "source_sentence"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "allergen": {
+                    "type": [
+                      "string",
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "reaction": {
+                    "type": [
+                      "string",
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "source_sentence": {
+                    "type": "string"
+                  },
+                  "confidence": {
+                    "type": "number"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "verified",
+                      "needs_review"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "family_history": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "source_sentence"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "text": {
+                "type": [
+                  "string",
+                  "number",
+                  "null"
+                ]
+              },
+              "source_sentence": {
+                "type": "string"
+              },
+              "confidence": {
+                "type": "number"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "verified",
+                  "needs_review"
+                ]
+              }
+            }
+          }
+        },
+        "personal_history": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "smoking": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "required": [
+                "value",
+                "source_sentence"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "source_sentence": {
+                  "type": "string"
+                },
+                "confidence": {
+                  "type": "number"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "verified",
+                    "needs_review"
+                  ]
+                }
+              }
+            },
+            "alcohol": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "required": [
+                "value",
+                "source_sentence"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "source_sentence": {
+                  "type": "string"
+                },
+                "confidence": {
+                  "type": "number"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "verified",
+                    "needs_review"
+                  ]
+                }
+              }
+            },
+            "diet": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "required": [
+                "value",
+                "source_sentence"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "source_sentence": {
+                  "type": "string"
+                },
+                "confidence": {
+                  "type": "number"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "verified",
+                    "needs_review"
+                  ]
+                }
+              }
+            },
+            "occupation": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "required": [
+                "value",
+                "source_sentence"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "source_sentence": {
+                  "type": "string"
+                },
+                "confidence": {
+                  "type": "number"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "verified",
+                    "needs_review"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "vitals": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "bp": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "required": [
+                "value",
+                "source_sentence"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "source_sentence": {
+                  "type": "string"
+                },
+                "confidence": {
+                  "type": "number"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "verified",
+                    "needs_review"
+                  ]
+                }
+              }
+            },
+            "pulse": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "required": [
+                "value",
+                "source_sentence"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "source_sentence": {
+                  "type": "string"
+                },
+                "confidence": {
+                  "type": "number"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "verified",
+                    "needs_review"
+                  ]
+                }
+              }
+            },
+            "temperature": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "required": [
+                "value",
+                "source_sentence"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "source_sentence": {
+                  "type": "string"
+                },
+                "confidence": {
+                  "type": "number"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "verified",
+                    "needs_review"
+                  ]
+                }
+              }
+            },
+            "respiratory_rate": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "required": [
+                "value",
+                "source_sentence"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "source_sentence": {
+                  "type": "string"
+                },
+                "confidence": {
+                  "type": "number"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "verified",
+                    "needs_review"
+                  ]
+                }
+              }
+            },
+            "spo2": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "required": [
+                "value",
+                "source_sentence"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "source_sentence": {
+                  "type": "string"
+                },
+                "confidence": {
+                  "type": "number"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "verified",
+                    "needs_review"
+                  ]
+                }
+              }
+            },
+            "weight": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "required": [
+                "value",
+                "source_sentence"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "source_sentence": {
+                  "type": "string"
+                },
+                "confidence": {
+                  "type": "number"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "verified",
+                    "needs_review"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "general_examination": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "required": [
+            "value",
+            "source_sentence"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            "source_sentence": {
+              "type": "string"
+            },
+            "confidence": {
+              "type": "number"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "verified",
+                "needs_review"
+              ]
+            }
+          }
+        },
+        "systemic_examination": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "cvs": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "required": [
+                "value",
+                "source_sentence"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "source_sentence": {
+                  "type": "string"
+                },
+                "confidence": {
+                  "type": "number"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "verified",
+                    "needs_review"
+                  ]
+                }
+              }
+            },
+            "respiratory": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "required": [
+                "value",
+                "source_sentence"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "source_sentence": {
+                  "type": "string"
+                },
+                "confidence": {
+                  "type": "number"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "verified",
+                    "needs_review"
+                  ]
+                }
+              }
+            },
+            "abdomen": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "required": [
+                "value",
+                "source_sentence"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "source_sentence": {
+                  "type": "string"
+                },
+                "confidence": {
+                  "type": "number"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "verified",
+                    "needs_review"
+                  ]
+                }
+              }
+            },
+            "cns": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "required": [
+                "value",
+                "source_sentence"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "source_sentence": {
+                  "type": "string"
+                },
+                "confidence": {
+                  "type": "number"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "verified",
+                    "needs_review"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "provisional_diagnosis": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "source_sentence"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "diagnosis": {
+                "type": [
+                  "string",
+                  "number",
+                  "null"
+                ]
+              },
+              "source_sentence": {
+                "type": "string"
+              },
+              "confidence": {
+                "type": "number"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "verified",
+                  "needs_review"
+                ]
+              }
+            }
+          }
+        },
+        "investigations_advised": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "source_sentence"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "investigation": {
+                "type": [
+                  "string",
+                  "number",
+                  "null"
+                ]
+              },
+              "source_sentence": {
+                "type": "string"
+              },
+              "confidence": {
+                "type": "number"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "verified",
+                  "needs_review"
+                ]
+              }
+            }
+          }
+        },
+        "admission_plan": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "diet": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "required": [
+                "value",
+                "source_sentence"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "source_sentence": {
+                  "type": "string"
+                },
+                "confidence": {
+                  "type": "number"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "verified",
+                    "needs_review"
+                  ]
+                }
+              }
+            },
+            "follow_up": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "required": [
+                "value",
+                "source_sentence"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "source_sentence": {
+                  "type": "string"
+                },
+                "confidence": {
+                  "type": "number"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "verified",
+                    "needs_review"
+                  ]
+                }
+              }
+            },
+            "orders": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "source_sentence"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "drug": {
+                    "type": [
+                      "string",
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "dose": {
+                    "type": [
+                      "string",
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "unit": {
+                    "type": [
+                      "string",
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "frequency": {
+                    "type": [
+                      "string",
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "route": {
+                    "type": [
+                      "string",
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "source_sentence": {
+                    "type": "string"
+                  },
+                  "confidence": {
+                    "type": "number"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "verified",
+                      "needs_review"
+                    ]
+                  }
+                }
+              }
+            },
+            "advice": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "source_sentence"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "text": {
+                    "type": [
+                      "string",
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "source_sentence": {
+                    "type": "string"
+                  },
+                  "confidence": {
+                    "type": "number"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "verified",
+                      "needs_review"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object"
+    }
+  }
+}
