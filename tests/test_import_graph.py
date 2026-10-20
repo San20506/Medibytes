@@ -1,7 +1,6 @@
 """Every import of project code must resolve, including imports inside function bodies.
 
-The `demo/` -> `base_pipeline/` move once left 13 function-local `from demo...` imports
-behind. They only failed when the function ran, so 8 eval tests broke and nothing said why.
+A package move once left 13 function-local `from demo...` imports behind. They only failed when the function ran, so 8 eval tests broke and nothing said why.
 This test reads every import statement (any depth) in the project packages and checks that its
 target module exists and exports the imported names, without executing any function.
 """
@@ -11,16 +10,15 @@ import importlib.util
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGES = ("base_pipeline", "clinical_eval", "eval", "whisper_demo")
-# `demo` and the top-level `en_pilot` no longer exist; listing them makes any leftover reference
-# fail rather than be skipped.
-CHECKED = PACKAGES + ("demo", "en_pilot")
+PACKAGES = ("whisper_demo",)
+# The retired packages no longer exist; listing them makes any leftover reference fail rather
+# than be skipped (see archive/pre-whisper-rebuild for the code).
+CHECKED = PACKAGES + ("base_pipeline", "clinical_eval", "eval", "demo", "en_pilot")
 
 
 def _sources():
     for package in PACKAGES:
         yield from (p for p in sorted((ROOT / package).rglob("*.py")) if "__pycache__" not in p.parts)
-    yield ROOT / "app.py"
 
 
 def _package_of(path):

@@ -2,6 +2,9 @@
 
 Kept for history. Nothing here describes the current layout; start from the repository `README.md`.
 
+`previous-pipeline/` holds the reports and plans written for the MedASR + denoiser pipeline (`base_pipeline/`,
+`eval/`, `clinical_eval/`), retired in the Whisper rebuild. The code is at tag `archive/pre-whisper-rebuild`.
+
 | file | what it is |
 |---|---|
 | `SESSION-SUMMARY.md` | a session summary on turning the denoising evidence into a production audio pipeline, with a "Path to ~95%" section on which metrics to target |

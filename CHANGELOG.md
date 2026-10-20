@@ -6,6 +6,19 @@ detail (OpenSpec change, evidence directory, or commit).
 
 ## Unreleased
 
+### Rebuilt on Whisper large-v3; retired the MedASR/denoiser tree (2026-10-20)
+
+`whisper_demo/` is now the base. Removed from the working tree: `base_pipeline/` (MedASR default,
+twelve denoiser arms, presets, Streamlit-facing runner), `eval/` (denoiser harness), `clinical_eval/`
+(scorers and gold files), `app.py`, `openspec/`, and the tests for them. All of it is recoverable at tag
+`archive/pre-whisper-rebuild` (`4a19fce`). The old reports moved to `docs/archive/previous-pipeline/`.
+
+- **No evaluation tooling remains in the tree.** The scorers imported `base_pipeline`; porting them was
+  declined for this pass, so the new base has no accuracy number until one is rebuilt.
+- `tests/test_import_graph.py` now covers `whisper_demo` only and fails on any leftover reference to the
+  retired package names.
+- Gitignored `runs/` and `evidence/` were left in place.
+
 ### Added `whisper_demo/`, a self-contained Whisper large-v3 pipeline (2026-10-20)
 
 audio -> large-v3 -> extraction -> optional LLM note, behind a FastAPI service (`python -m whisper_demo`,

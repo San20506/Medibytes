@@ -1,7 +1,0 @@
-english_words.txt is the set of whole alphabetic words (3+ letters) in the
-`bert-base-uncased` WordPiece vocabulary (the vocabulary file shipped with
-sentence-transformers/all-MiniLM-L6-v2), published by Google Research under the
-Apache License 2.0: https://github.com/google-research/bert
-
-It is used only as a list of ordinary English words, so that
-`context_repair` never offers one of them to the drug-name matcher.

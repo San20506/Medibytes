@@ -1,9 +1,0 @@
-# Method-local environment for the pinned DeepFilterNet v0.5.6 DeepFilterNet3 arm.
-#
-# torch/torchaudio come from the official PyTorch CPU index as +cpu local builds.
-# deepfilternet==0.5.6 requires numpy<2 and deepfilterlib==0.5.6 publishes no
-# CPython 3.12 wheel, so this arm runs in an isolated Python 3.11 environment
-# instead of the shared Python 3.12 evaluation environment.
-deepfilternet==0.5.6
-torch==2.1.2+cpu
-torchaudio==2.1.2+cpu

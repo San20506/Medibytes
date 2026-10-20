@@ -1,5 +1,0 @@
-# Streamlit UI for base_pipeline (upload-only, transparent steps).
-# Install: pip install -r base_pipeline/requirements.txt -r requirements-ui.txt
-# Sherpa noisy path (optional): pip install sherpa-onnx==1.13.8 sherpa-onnx-bin==1.13.8
-#   + point the sidebar "sherpa .onnx path" at gtcrn_simple.onnx (sha e77603ac…).
-streamlit>=1.33
