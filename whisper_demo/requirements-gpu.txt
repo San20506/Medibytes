@@ -1,0 +1,3 @@
+# CUDA 12 runtime libraries CTranslate2 4.x loads (Linux). stt.py preloads them from site-packages.
+nvidia-cublas-cu12
+nvidia-cudnn-cu12==9.*

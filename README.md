@@ -19,6 +19,7 @@ eval/            denoiser/ASR evaluation harness (frozen contracts, paired stati
   en_pilot/        the English-only denoising WER pilot
 clinical_eval/   clinical fact accuracy: component eval on the 7-clip set, gold files, scorers
 app.py           Streamlit UI over base_pipeline
+whisper_demo/    self-contained Whisper large-v3 demo service (imports nothing above; see below)
 tests/           cross-package tests (import graph, the UI)
 fixtures/audio/  small audio samples and the script they were recorded from
 docs/            reports and plans; docs/archive/ is history only
@@ -171,10 +172,28 @@ Run a heavy arm under its own interpreter, e.g.
 - Reports: `docs/PIPELINE_EVAL_REPORT.md` (the 30-clip set and the LLM stages),
   `docs/DENOISING_PILOT_20260927.md` and `eval/reports/` (the 12-row denoiser comparison).
 
+## Whisper large-v3 demo
+
+`whisper_demo/` is a separate, self-contained service: audio -> Whisper large-v3 -> extraction ->
+optional LLM discharge note. No denoiser, MedASR, second pass or mock. It has its own
+requirements and imports nothing from the packages above (its extraction code is a fork; see the
+header of each file).
+
+```bash
+pip install -r whisper_demo/requirements.txt -r whisper_demo/requirements-gpu.txt   # gpu file: Linux CUDA only
+python -m whisper_demo                    # http://127.0.0.1:8001/docs
+curl -F file=@clip.mp3 -F language=auto http://127.0.0.1:8001/api/jobs
+curl http://127.0.0.1:8001/api/jobs/<job_id>
+```
+
+`GET /api/health` reports the device the model settled on (`cuda float16`, or `cpu int8` with the
+reason). Env: `WHISPER_DEMO_CORS_ORIGINS` (comma list; none by default), `WHISPER_DEMO_JOB_ROOT`,
+`WHISPER_DEMO_PRELOAD=0`, `WHISPER_DEMO_PORT`. LLM steps use `MEDIBYTES_LLM_URL/MODEL/KEY`.
+
 ## Tests
 
 ```bash
-python -m pytest tests base_pipeline clinical_eval eval -q -rs
+python -m pytest tests base_pipeline clinical_eval eval whisper_demo -q -rs
 ```
 
 An arm's tests skip, with the probe's reason shown by `-rs`, where that arm cannot run (its package,

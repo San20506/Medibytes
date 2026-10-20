@@ -6,6 +6,23 @@ detail (OpenSpec change, evidence directory, or commit).
 
 ## Unreleased
 
+### Added `whisper_demo/`, a self-contained Whisper large-v3 pipeline (2026-10-20)
+
+audio -> large-v3 -> extraction -> optional LLM note, behind a FastAPI service (`python -m whisper_demo`,
+port 8001). It imports nothing from `base_pipeline`: the extraction, LLM and verify modules and their
+assets are forks of `base_pipeline/*` at `c68d7a9` and are not kept in sync.
+
+- **No denoiser, MedASR, second pass or mock.** A decode or STT failure marks the job `failed` with the
+  reason; silence and clips under 0.6 s are rejected before the model runs.
+- **The GPU path is proven, not assumed.** CTranslate2 builds a CUDA model on a machine whose cuBLAS 12
+  cannot load and only fails on the first `transcribe()`, so `stt.load()` preloads the pip cuBLAS/cuDNN
+  and warms the model with a real decode before choosing `cuda float16`, else `cpu int8`. The device,
+  compute type and fallback reason are in `/api/health` and in each job's provenance.
+- `tests/test_import_graph.py` now covers `whisper_demo`; `whisper_demo/tests/test_wd_isolation.py` also
+  runs the package from a copy in a temp directory.
+- Also committed from the 2026-10-14 multilingual work: an unknown STT model raises instead of running
+  Whisper tiny, and `raw_asr_score.tokens()` keeps Indic letters and marks.
+
 ### Sanitised the tree and isolated the approaches (2026-10-10)
 
 One package per concern, one name per approach. Branch `chore/sanitize-isolate`, one commit per

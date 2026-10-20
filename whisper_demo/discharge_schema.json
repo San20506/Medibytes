@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "6-section discharge note (heard-only, proof-grounded)",
+  "type": "object",
+  "required": ["sections"],
+  "properties": {
+    "sections": {
+      "type": "object",
+      "required": ["present_illness", "examination_findings", "previous_diagnosis",
+                   "plan_of_management", "diet_instructions", "general_instructions"],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^(present_illness|examination_findings|previous_diagnosis|plan_of_management|diet_instructions|general_instructions)$": {
+          "type": "object",
+          "required": ["items"],
+          "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["text", "source_sentence"],
+                  "properties": {
+                    "text": {"type": "string"},
+                    "source_sentence": {"type": "string"},
+                    "seg_id": {"type": ["integer", "null"]},
+                    "confidence": {"type": "number"},
+                    "verified_kind": {"type": "string"},
+                    "verified_status": {"type": "string",
+                                        "enum": ["verified", "needs_review", "rejected"]}
+                  }
+                }
+              }
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "properties": {
+        "llm_engine": {"type": "string"},
+        "verified_summary": {"type": "object"},
+        "dropped_unproven": {"type": "integer"},
+        "prefilled": {"type": "integer"},
+        "schema": {"type": "string"},
+        "schema_error": {"type": "string"}
+      }
+    }
+  }
+}

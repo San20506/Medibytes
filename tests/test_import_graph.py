@@ -11,7 +11,7 @@ import importlib.util
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGES = ("base_pipeline", "clinical_eval", "eval")
+PACKAGES = ("base_pipeline", "clinical_eval", "eval", "whisper_demo")
 # `demo` and the top-level `en_pilot` no longer exist; listing them makes any leftover reference
 # fail rather than be skipped.
 CHECKED = PACKAGES + ("demo", "en_pilot")
